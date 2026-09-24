@@ -1,0 +1,19 @@
+{
+  "name": "hotel-api-gateway",
+  "version": "1.0.0",
+  "description": "Gateway que unifica todos los microservicios del hotel en un solo puerto público (3000), el que ya usa el frontend.",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "http-proxy-middleware": "^2.0.9"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

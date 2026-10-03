@@ -1,58 +1,16 @@
-import { getRabbitChannel } from "./rabbitmq";
+import { broker } from "./broker.facade";
 import { UserRole } from "../models/user.model";
 
-interface UserLoggedInEvent {
+interface UserEventData {
   userId: string;
   username: string;
   role: UserRole;
 }
 
-export async function publishUserLoggedIn(data: UserLoggedInEvent): Promise<void> {
-  const channel = getRabbitChannel();
-  const exchange = process.env.RABBITMQ_EXCHANGE as string;
-
-  const message = {
-    event: "USER_LOGGED_IN",
-    timestamp: new Date().toISOString(),
-    data
-  };
-
-  channel.publish(
-    exchange,
-    "auth.user.logged_in",
-    Buffer.from(JSON.stringify(message)),
-    {
-      persistent: true,
-      contentType: "application/json"
-    }
-  );
-
-  console.log("[AUTH][Broker] Evento publicado: auth.user.logged_in");
+export async function publishUserLoggedIn(data: UserEventData): Promise<void> {
+  broker.publish("auth.user.logged_in", "USER_LOGGED_IN", data);
 }
 
-export async function publishUserCreated(data: {
-  userId: string;
-  username: string;
-  role: UserRole;
-}): Promise<void> {
-  const channel = getRabbitChannel();
-  const exchange = process.env.RABBITMQ_EXCHANGE as string;
-
-  const message = {
-    event: "USER_CREATED",
-    timestamp: new Date().toISOString(),
-    data
-  };
-
-  channel.publish(
-    exchange,
-    "auth.user.created",
-    Buffer.from(JSON.stringify(message)),
-    {
-      persistent: true,
-      contentType: "application/json"
-    }
-  );
-
-  console.log("[AUTH][Broker] Evento publicado: auth.user.created");
+export async function publishUserCreated(data: UserEventData): Promise<void> {
+  broker.publish("auth.user.created", "USER_CREATED", data);
 }

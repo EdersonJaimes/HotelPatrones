@@ -3,7 +3,7 @@ dotenv.config();
 
 import app from "./app";
 import { connectDatabase } from "./config/database";
-import { connectRabbitMQ } from "./broker/rabbitmq";
+import { broker } from "./broker/broker.facade";
 import { AuthService } from "./services/auth.service";
 
 const PORT = Number(process.env.PORT || 3000);
@@ -11,7 +11,7 @@ const PORT = Number(process.env.PORT || 3000);
 async function startServer(): Promise<void> {
   try {
     await connectDatabase();
-    await connectRabbitMQ();
+    await broker.connect();
     await new AuthService().ensureInitialAdmin();
 
     app.listen(PORT, () => {

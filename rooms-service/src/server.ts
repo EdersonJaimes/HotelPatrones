@@ -3,7 +3,7 @@ dotenv.config();
 
 import app from "./app";
 import { connectDatabase } from "./config/database";
-import { connectRabbitMQ } from "./broker/rabbitmq";
+import { broker } from "./broker/broker.facade";
 import { startReservationConsumer } from "./broker/reservation.consumer";
 
 const PORT = Number(process.env.PORT || 3001);
@@ -11,7 +11,7 @@ const PORT = Number(process.env.PORT || 3001);
 async function startServer(): Promise<void> {
   try {
     await connectDatabase();
-    await connectRabbitMQ();
+    await broker.connect();
     await startReservationConsumer();
 
     app.listen(PORT, () => {

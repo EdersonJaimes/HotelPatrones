@@ -7,7 +7,7 @@ interface Stats {
   clients: number;
   roomsOccupied: number;
   lowStock: number;
-  topProducts?: { _id: string; total: number }[];
+  topProducts?: { _id: string; name?: string; total: number }[];
 }
 
 export default function DashboardPage() {
@@ -21,7 +21,7 @@ export default function DashboardPage() {
       try {
         if (!token) return;
 
-        const data = await getStats(token);
+        const data = await getStats();
         setStats(data);
 
         // 🔥 alerta inteligente
@@ -73,7 +73,7 @@ export default function DashboardPage() {
                 key={i}
                 className="flex justify-between border-b py-2"
               >
-                <span>Producto ID: {p._id}</span>
+                <span>{p.name ?? p._id}</span>
                 <span className="font-bold">{p.total}</span>
               </div>
             ))

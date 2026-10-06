@@ -20,7 +20,7 @@ import {
 } from "../../utils/alerts";
 
 import { productColumns, productFields } from "./product.config";
-import { Product } from "./product.types";
+import type { Product } from "./product.types";
 
 export default function Products() {
   const [data, setData] = useState<Product[]>([]);

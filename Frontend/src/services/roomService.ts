@@ -1,18 +1,18 @@
-import roomsApi from "./roomsApi";
+import api from "./api";
 
 export const getRooms = async () => {
-  const res = await roomsApi.get("/rooms");
+  const res = await api.get("/rooms");
   return res.data;
 };
 
 export const createRoom = async (data: any) => {
-  return (await roomsApi.post("/rooms", data)).data;
+  return (await api.post("/rooms", data)).data;
 };
 
 export const updateRoom = async (id: string, data: any) => {
-  return (await roomsApi.put(`/rooms/${id}`, data)).data;
+  return (await api.put(`/rooms/${id}`, data)).data;
 };
 
 export const deleteRoom = async (id: string) => {
-  return (await roomsApi.delete(`/rooms/${id}`)).data;
+  return (await api.delete(`/rooms/${id}`)).data;
 };

@@ -1,23 +1,10 @@
-import axios from "axios";
+import api from "./api";
 
-const API = "http://localhost:3000/api/dashboard";
-
-// instancia (reutilizable luego)
-const dashboardApi = axios.create({
-  baseURL: API,
-});
-
-// obtener estadísticas
-export const getStats = async (token: string) => {
+// El token lo agrega el interceptor de api.ts.
+export const getStats = async () => {
   try {
-    const response = await dashboardApi.get("/stats", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
+    const response = await api.get("/dashboard/stats");
     return response.data;
-
   } catch (error: any) {
     console.error("Error en getStats:", error.response?.data || error.message);
     throw error;

@@ -43,8 +43,8 @@ const AppRouter = () => {
           </Route>
         </Route>
 
-        {/* RECEPCIÓN 🔐 */}
-        <Route element={<ProtectedRoute allowedRoles={["recepcionista"]} />}>
+        {/* RECEPCIÓN 🔐 - el admin también la usa (está en su menú) */}
+        <Route element={<ProtectedRoute allowedRoles={["admin", "recepcionista"]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/reception" element={<Reception />} />
           </Route>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import RoomCard from "../../components/RoomCard";
 import StayModal from "../../components/StayModal";
 import api from "../../services/api";
@@ -33,6 +34,7 @@ export default function Reception() {
       await loadRooms();
     } catch (error: any) {
       console.error("ERROR startStay:", error.response?.data);
+      Swal.fire("Error", error.response?.data?.message ?? "No se pudo iniciar la estancia", "error");
     }
   };
 
@@ -45,6 +47,7 @@ export default function Reception() {
       setSelectedStay(stay);
     } catch (error: any) {
       console.error("ERROR getActiveStay:", error.response?.data);
+      Swal.fire("Error", error.response?.data?.message ?? "No se pudo cargar la estancia", "error");
     }
   };
 

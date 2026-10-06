@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+import api from "../services/api";
 import { addProduct, checkout } from "../services/stayService";
 
 export default function StayModal({
@@ -13,24 +14,46 @@ export default function StayModal({
 
   // 🔥 cargar productos
   useEffect(() => {
-    fetch("http://localhost:3000/api/products")
-      .then((res) => res.json())
-      .then(setProducts);
+    api
+      .get("/products")
+      .then((res) => setProducts(res.data))
+      .catch(() => Swal.fire("Error", "No se pudieron cargar los productos", "error"));
   }, []);
 
+  // El backend responde con el motivo (ej. "Stock insuficiente: ..."); se muestra tal cual.
+  const showError = (error: any) =>
+    Swal.fire("Error", error.response?.data?.message ?? "Ocurrió un error", "error");
+
   const handleAdd = async () => {
-    await addProduct({
-      stayId: stay._id,
-      productId: selectedProduct,
-      quantity,
-    });
+    if (!selectedProduct) {
+      Swal.fire("Seleccione un producto", "", "warning");
+      return;
+    }
+
+    try {
+      await addProduct({
+        stayId: stay._id,
+        productId: selectedProduct,
+        quantity,
+      });
+    } catch (error) {
+      showError(error);
+      return;
+    }
 
     Swal.fire("Agregado", "", "success");
     reload();
   };
 
   const handleCheckout = async () => {
-    const res = await checkout(stay._id);
+    let res;
+
+    try {
+      res = await checkout(stay._id);
+    } catch (error) {
+      showError(error);
+      return;
+    }
 
     Swal.fire({
       title: "Cuenta",
@@ -69,7 +92,7 @@ export default function StayModal({
           className="w-full border p-2 mb-2"
           onChange={(e) => setSelectedProduct(e.target.value)}
         >
-          <option>Seleccione producto</option>
+          <option value="">Seleccione producto</option>
           {products.map((p) => (
             <option key={p._id} value={p._id}>
               {p.name}

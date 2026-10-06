@@ -53,9 +53,20 @@ class DashboardFacade {
         ? inventoryResult.value.filter((row) => row.stock <= this.lowStockThreshold).length
         : (warnings.push(`products-service (inventory): ${inventoryResult.reason.message}`), null);
 
+    // El top solo trae ids: los nombres salen del inventario (si el producto
+    // fue eliminado o el inventario falló, se deja el id como nombre).
+    const names = new Map(
+      inventoryResult.status === "fulfilled"
+        ? inventoryResult.value.map((row) => [String(row.product._id), row.product.name])
+        : []
+    );
+
     const topProducts =
       topConsumedResult.status === "fulfilled"
-        ? topConsumedResult.value
+        ? topConsumedResult.value.map((item) => ({
+            ...item,
+            name: names.get(String(item._id)) ?? String(item._id)
+          }))
         : (warnings.push(`products-service (top-consumed): ${topConsumedResult.reason.message}`), []);
 
     const clients =

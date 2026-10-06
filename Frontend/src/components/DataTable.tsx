@@ -2,7 +2,7 @@ import { useState } from "react";
 
 interface Column<T> {
   header: string;
-  accessor: keyof T;
+  accessor: string;
   render?: (row: T) => React.ReactNode;
 }
 
@@ -14,7 +14,7 @@ interface Props<T> {
   onView?: (row: T) => void;
 }
 
-export default function DataTable<T extends { _id: string }>({
+export default function DataTable<T extends { _id?: string }>({
   data,
   columns,
   onEdit,
@@ -63,14 +63,14 @@ export default function DataTable<T extends { _id: string }>({
         </thead>
 
         <tbody>
-          {filteredData.map((row) => (
-            <tr key={row._id} className="border-t hover:bg-gray-50">
+          {filteredData.map((row, i) => (
+            <tr key={row._id ?? i} className="border-t hover:bg-gray-50">
 
               {columns.map((col) => (
                 <td key={String(col.accessor)} className="p-2">
                   {col.render
                     ? col.render(row)
-                    : String(row[col.accessor])}
+                    : String(row[col.accessor as keyof T])}
                 </td>
               ))}
 

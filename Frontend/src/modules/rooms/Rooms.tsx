@@ -20,7 +20,7 @@ import {
 } from "../../utils/alerts";
 
 import { roomColumns, roomFields } from "./room.config";
-import { Room } from "./room.types";
+import type { Room } from "./room.types";
 
 export default function Rooms() {
   const [data, setData] = useState<Room[]>([]);

@@ -1,5 +1,5 @@
-import axios from "axios";
-import {
+import api from "./api";
+import type {
   Inventory,
   InventoryMovement,
 } from "../modules/inventory/inventory.types";
@@ -13,27 +13,10 @@ const INVENTORY_ENDPOINTS = {
   MOVEMENTS: (productId: string) => `/movements/${productId}`,
 };
 
-const API = "http://localhost:3000/api";
-
-const inventoryApi = axios.create({
-  baseURL: API,
-});
-
-// 🔐 interceptor
-inventoryApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
-});
-
 // 📦 obtener inventario
 export const getInventory = async (): Promise<Inventory[]> => {
   try {
-    const res = await inventoryApi.get(
+    const res = await api.get(
       `${INVENTORY_ENDPOINTS.BASE}${INVENTORY_ENDPOINTS.GET_ALL}`
     );
     return res.data;
@@ -50,7 +33,7 @@ export const addStock = async (data: {
   reason: string;
 }) => {
   try {
-    const res = await inventoryApi.post(
+    const res = await api.post(
       `${INVENTORY_ENDPOINTS.BASE}${INVENTORY_ENDPOINTS.ADD}`,
       data
     );
@@ -68,7 +51,7 @@ export const removeStock = async (data: {
   reason: string;
 }) => {
   try {
-    const res = await inventoryApi.post(
+    const res = await api.post(
       `${INVENTORY_ENDPOINTS.BASE}${INVENTORY_ENDPOINTS.REMOVE}`,
       data
     );
@@ -84,7 +67,7 @@ export const getMovements = async (
   productId: string
 ): Promise<InventoryMovement[]> => {
   try {
-    const res = await inventoryApi.get(
+    const res = await api.get(
       `${INVENTORY_ENDPOINTS.BASE}${INVENTORY_ENDPOINTS.MOVEMENTS(productId)}`
     );
     return res.data;

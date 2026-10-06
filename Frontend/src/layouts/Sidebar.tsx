@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(true);
-  const { role } = useAuth();
+  const { role, logout } = useAuth();
   const navigate = useNavigate();
 
   const menuAdmin = [
@@ -24,13 +24,18 @@ export default function Sidebar() {
     { name: "Reservas", path: "/reservations", icon: "🗓️" },
   ];
 
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   const menu = role === "admin" ? menuAdmin : menuRecep;
 
   return (
     <div
       onMouseEnter={() => setCollapsed(false)}
       onMouseLeave={() => setCollapsed(true)}
-      className={`h-screen bg-slate-900 text-white transition-all duration-300 
+      className={`h-screen flex flex-col bg-slate-900 text-white transition-all duration-300 
       ${collapsed ? "w-[70px]" : "w-[220px]"}`}
     >
       {/* Logo */}
@@ -53,6 +58,16 @@ export default function Sidebar() {
             )}
           </div>
         ))}
+      </div>
+
+      {/* Cerrar sesión, siempre al fondo del menú */}
+      <div
+        onClick={handleLogout}
+        className="mt-auto flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-red-600 transition"
+      >
+        <span>🚪</span>
+
+        {!collapsed && <span className="text-sm">Cerrar sesión</span>}
       </div>
     </div>
   );

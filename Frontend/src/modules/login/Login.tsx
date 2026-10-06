@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "../../services/api";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -39,10 +39,7 @@ export default function Login() {
       setLoading(true);
       setError("");
 
-      const res = await axios.post(
-        "http://localhost:3000/api/auth/login",
-        form
-      );
+      const res = await api.post("/auth/login", form);
 
       const { token, role, name } = res.data;
 

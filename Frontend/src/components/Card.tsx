@@ -1,9 +1,3 @@
-interface Props {
-  title: string;
-  value: number | string;
-  icon: string;
-}
-
 export default function Card({title, value,}: 
   {
   title: string;

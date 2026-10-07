@@ -2,38 +2,29 @@ import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import Card from "../../components/Card";
 import { useAuth } from "../../context/AuthContext";
-import { getStats } from "../../services/dashboardService";
-interface Stats {
-  clients: number;
-  roomsOccupied: number;
-  lowStock: number;
-  topProducts?: { _id: string; name?: string; total: number }[];
-}
+import { getStats, getStatsWithoutFacade, type DashboardStats, type StatsResult } from "../../services/dashboardService";
 
 export default function DashboardPage() {
   const { token, name } = useAuth();
 
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [metrics, setMetrics] = useState<{ requests: number; ms: number } | null>(null);
+  const [useFacade, setUseFacade] = useState(true);
   const [loading, setLoading] = useState(true);
 
+  // Se vuelve a pedir cada vez que se cambia de modo, para comparar en vivo.
   useEffect(() => {
     const fetchData = async () => {
       try {
         if (!token) return;
 
-        const data = await getStats();
-        setStats(data);
+        const result: StatsResult = useFacade
+          ? await getStats()
+          : await getStatsWithoutFacade();
 
-        // 🔥 alerta inteligente
-        if (data.lowStock > 0) {
-          Swal.fire({
-            title: "⚠️ Atención",
-            text: "Hay productos con bajo stock",
-            icon: "warning",
-          });
-        }
-
-      } catch (error) {
+        setStats(result.stats);
+        setMetrics({ requests: result.requests, ms: result.ms });
+      } catch {
         Swal.fire("Error", "No se pudieron cargar los datos", "error");
       } finally {
         setLoading(false);
@@ -41,7 +32,7 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, [token]);
+  }, [token, useFacade]);
 
   if (loading) {
     return <p className="p-6">Cargando dashboard...</p>;
@@ -52,6 +43,31 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold mb-6">
         Bienvenido, {name}
       </h1>
+
+      {/* Selector de modo + métricas de la última carga */}
+      <div className="flex flex-wrap items-center gap-4 mb-6">
+        <div className="inline-flex rounded-lg overflow-hidden border">
+          <button
+            onClick={() => setUseFacade(true)}
+            className={`px-4 py-2 text-sm ${useFacade ? "bg-emerald-600 text-white" : "bg-white"}`}
+          >
+            Con Facade
+          </button>
+          <button
+            onClick={() => setUseFacade(false)}
+            className={`px-4 py-2 text-sm ${!useFacade ? "bg-rose-600 text-white" : "bg-white"}`}
+          >
+            Sin Facade
+          </button>
+        </div>
+
+        {metrics && (
+          <p className="text-sm text-gray-600">
+            Peticiones del navegador: <b>{metrics.requests}</b> · Tiempo:{" "}
+            <b>{metrics.ms.toFixed(0)} ms</b>
+          </p>
+        )}
+      </div>
 
       {/* 🔥 CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -1,7 +1,7 @@
 export default function Card({title, value,}: 
   {
   title: string;
-  value?: number;
+  value?: number | null;
 }) {
   return (
     <div className="bg-white rounded-2xl shadow-md p-5 hover:shadow-lg transition">

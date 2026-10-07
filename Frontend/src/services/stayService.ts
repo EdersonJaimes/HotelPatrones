@@ -1,37 +1,40 @@
-import axios from "axios";
+import api from "./api";
 
-const API = "http://localhost:3000/api/stays";
+// Este archivo se llamaba "stayService" por el diseño anterior (estancias
+// por horas). Se mantiene el nombre del archivo para no romper los imports
+// existentes, pero ahora habla con /reservations (el modelo real del backend:
+// reserva → confirmación → check-in → check-out, con consumo de productos).
 
-const stayApi = axios.create({
-  baseURL: API,
-});
-
-stayApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-// 🟢 iniciar estancia
-export const startStay = async (roomId: string) => {
-  const res = await stayApi.post("/start", { roomId });
+// 🟢 Recepción: click en la habitación → check-in inmediato (crea, confirma
+// y hace check-in en un solo paso dentro de reservations-service).
+export const quickCheckin = async (data: {
+  roomId: string;
+  clientName: string;
+  clientDocument?: string;
+  clientPhone?: string;
+  guests?: number;
+}) => {
+  const res = await api.post("/reservations/quick-checkin", data);
   return res.data;
 };
 
-// ➕ agregar producto
-export const addProduct = async (data: any) => {
-  const res = await stayApi.post("/add-product", data);
+// ➕ agregar producto a la cuenta de una reserva con check-in activo
+export const addConsumption = async (
+  reservationId: string,
+  data: { productId: string; quantity: number }
+) => {
+  const res = await api.post(`/reservations/${reservationId}/consumptions`, data);
   return res.data;
 };
 
-// 🔴 checkout
-export const checkout = async (stayId: string) => {
-  const res = await stayApi.post("/checkout", { stayId });
+// 🔴 checkout: calcula y persiste roomTotal + productsTotal + grandTotal
+export const checkout = async (reservationId: string) => {
+  const res = await api.patch(`/reservations/${reservationId}/check-out`, {});
   return res.data;
 };
 
-// 📄 obtener estancia activa
-export const getActiveStay = async (roomId: string) => {
-  const res = await stayApi.get(`/active/${roomId}`);
+// 📄 reserva con check-in activo para una habitación (para abrir su cuenta)
+export const getActiveReservation = async (roomId: string) => {
+  const res = await api.get(`/reservations/active/${roomId}`);
   return res.data;
 };

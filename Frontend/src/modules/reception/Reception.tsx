@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import RoomCard from "../../components/RoomCard";
 import StayModal from "../../components/StayModal";
 import api from "../../services/api";
-import { getActiveStay, startStay } from "../../services/stayService";
+import { getActiveReservation, quickCheckin } from "../../services/stayService";
 
 export default function Reception() {
   const [rooms, setRooms] = useState<any[]>([]);
-  const [selectedStay, setSelectedStay] = useState<any>(null);
+  const [selectedReservation, setSelectedReservation] = useState<any>(null);
 
   // 🔥 cargar habitaciones
   const loadRooms = async () => {
     try {
       const res = await api.get("/rooms");
-      console.log("ROOMS:", res.data);
       setRooms(res.data);
     } catch (error: any) {
       console.error("Error cargando habitaciones:", error.response?.data);
@@ -23,28 +23,40 @@ export default function Reception() {
     loadRooms();
   }, []);
 
-  // 🟢 iniciar estancia
+  // 🟢 check-in inmediato: primero pide el nombre del cliente
   const handleStart = async (roomId: string) => {
+    const { value: clientName } = await Swal.fire({
+      title: "Check-in",
+      input: "text",
+      inputLabel: "Nombre del cliente",
+      inputPlaceholder: "Nombre completo",
+      showCancelButton: true,
+      confirmButtonText: "Registrar entrada",
+      inputValidator: (value) => (!value ? "El nombre es obligatorio" : undefined),
+    });
+
+    if (!clientName) return;
+
     try {
-      console.log("Iniciando habitación:", roomId);
-
-      await startStay(roomId);
-
+      await quickCheckin({ roomId, clientName });
       await loadRooms();
+      Swal.fire("Check-in registrado", "", "success");
     } catch (error: any) {
-      console.error("ERROR startStay:", error.response?.data);
+      Swal.fire("No se pudo hacer check-in", error.response?.data?.message ?? "Error", "error");
     }
   };
 
-  // 👁 ver estancia activa
+  // 👁 ver la cuenta de una habitación ocupada
   const handleView = async (roomId: string) => {
     try {
-      const stay = await getActiveStay(roomId);
-      console.log("STAY:", stay);
-
-      setSelectedStay(stay);
+      const reservation = await getActiveReservation(roomId);
+      setSelectedReservation(reservation);
     } catch (error: any) {
-      console.error("ERROR getActiveStay:", error.response?.data);
+      Swal.fire(
+        "No se encontró una reserva activa",
+        error.response?.data?.message ?? "Error",
+        "error"
+      );
     }
   };
 
@@ -65,13 +77,13 @@ export default function Reception() {
       </div>
 
       {/* MODAL */}
-      {selectedStay && (
+      {selectedReservation && (
         <StayModal
-          stay={selectedStay}
-          onClose={() => setSelectedStay(null)}
+          reservation={selectedReservation}
+          onClose={() => setSelectedReservation(null)}
           reload={() => {
             loadRooms();
-            setSelectedStay(null);
+            setSelectedReservation(null);
           }}
         />
       )}

@@ -3,9 +3,11 @@ import {
   publishReservationCheckedIn,
   publishReservationCheckedOut,
   publishReservationConfirmed,
+  publishReservationConsumptionAdded,
   publishReservationCreated,
   publishReservationUpdated
 } from "../broker/reservation.publisher";
+import { ProductsClient } from "../clients/products.client";
 import { getReservationChannelFactory } from "../factories/reservationChannel.factory";
 import { IReservation, ReservationChannel } from "../models/reservation.model";
 import { ReservationRepository } from "../repositories/reservation.repository";
@@ -20,7 +22,11 @@ function hoursBetween(from: Date, to: Date): number {
   return (to.getTime() - from.getTime()) / (1000 * 60 * 60);
 }
 
-function toEventPayload(reservation: IReservation, notification?: { title: string; message: string }) {
+function toEventPayload(
+  reservation: IReservation,
+  notification?: { title: string; message: string },
+  extra?: Record<string, unknown>
+) {
   return {
     reservationId: reservation._id.toString(),
     roomId: reservation.roomId,
@@ -31,13 +37,15 @@ function toEventPayload(reservation: IReservation, notification?: { title: strin
     channel: reservation.channel,
     status: reservation.status,
     totalPrice: reservation.totalPrice,
-    notification
+    notification,
+    ...extra
   };
 }
 
 export class ReservationService {
   private readonly reservationRepository = new ReservationRepository();
   private readonly roomSnapshotRepository = new RoomSnapshotRepository();
+  private readonly productsClient = new ProductsClient();
 
   async listReservations() {
     return this.reservationRepository.findAll();
@@ -244,7 +252,12 @@ export class ReservationService {
       throw new Error("Solo se puede hacer check-in a una reserva confirmada");
     }
 
-    const reservation = await this.reservationRepository.updateStatus(id, "checked_in");
+    // Se registra la hora REAL de entrada (distinta de checkIn, que es la
+    // fecha planeada al crear la reserva). Esto es lo que permite, en el
+    // check-out, cobrar por las noches que de verdad transcurrieron.
+    const reservation = await this.reservationRepository.updateStatus(id, "checked_in", {
+      actualCheckIn: new Date()
+    });
 
     if (!reservation) {
       throw new Error("Reserva no encontrada");
@@ -266,13 +279,40 @@ export class ReservationService {
       throw new Error("Solo se puede hacer check-out de una reserva con check-in activo");
     }
 
-    const reservation = await this.reservationRepository.updateStatus(id, "checked_out");
+    const actualCheckOut = new Date();
+    const actualCheckIn = current.actualCheckIn ?? current.checkIn;
+
+    // Noches REALES transcurridas (mínimo 1), no las que se habían planeado
+    // al crear la reserva. Se reutiliza la MISMA estrategia de precio de su
+    // canal (walk-in, phone, online, corporate), así que un descuento
+    // corporativo o un recargo online se siguen aplicando igual.
+    const nights = Math.max(1, nightsBetween(actualCheckIn, actualCheckOut));
+    const factory = getReservationChannelFactory(current.channel);
+    const pricing = factory.createPricingStrategy();
+
+    const roomTotal = pricing.calculateTotal({
+      basePrice: current.basePrice,
+      nights,
+      guests: current.guests
+    });
+
+    const productsTotal = current.consumptions.reduce((sum, item) => sum + item.subtotal, 0);
+    const grandTotal = roomTotal + productsTotal;
+
+    const reservation = await this.reservationRepository.updateStatus(id, "checked_out", {
+      actualCheckOut,
+      roomTotal,
+      productsTotal,
+      grandTotal
+    });
 
     if (!reservation) {
       throw new Error("Reserva no encontrada");
     }
 
-    await publishReservationCheckedOut(toEventPayload(reservation));
+    await publishReservationCheckedOut(
+      toEventPayload(reservation, undefined, { roomTotal, productsTotal, grandTotal })
+    );
 
     return reservation;
   }
@@ -313,6 +353,105 @@ export class ReservationService {
     });
 
     await publishReservationCancelled(toEventPayload(reservation, notification));
+
+    return reservation;
+  }
+
+  async getActiveByRoomId(roomId: string) {
+    const reservation = await this.reservationRepository.findActiveByRoomId(roomId);
+
+    if (!reservation) {
+      throw new Error("Esta habitación no tiene una reserva con check-in activo");
+    }
+
+    return reservation;
+  }
+
+  // ---- Flujo de Recepción: click en la habitación → check-in inmediato ----
+
+  async quickCheckin(data: {
+    roomId: string;
+    clientName: string;
+    clientDocument?: string;
+    clientPhone?: string;
+    guests?: number;
+    createdBy?: string;
+  }) {
+    const now = new Date();
+    const estimatedCheckOut = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    // Reutiliza EXACTAMENTE la misma validación, tarifa (walk-in) y política
+    // de cancelación que una reserva creada a mano: no se duplica ninguna
+    // regla de negocio, solo se le dan valores por defecto para un huésped
+    // que ya está parado frente al mostrador.
+    const reservation = await this.createReservation({
+      roomId: data.roomId,
+      clientName: data.clientName,
+      clientDocument: data.clientDocument,
+      clientPhone: data.clientPhone,
+      checkIn: now.toISOString(),
+      checkOut: estimatedCheckOut.toISOString(),
+      guests: data.guests ?? 1,
+      channel: "walk_in",
+      createdBy: data.createdBy
+    });
+
+    const id = reservation._id.toString();
+
+    await this.confirmReservation(id);
+
+    // El check-in real registra actualCheckIn = ahora, que es lo que se usa
+    // después en checkOut() para cobrar las noches reales, no la estimación.
+    return this.checkIn(id);
+  }
+
+  async addConsumption(id: string, data: { productId: string; quantity: number }, authorization: string) {
+    const current = await this.reservationRepository.findById(id);
+
+    if (!current) {
+      throw new Error("Reserva no encontrada");
+    }
+
+    if (current.status !== "checked_in") {
+      throw new Error("Solo se puede agregar consumo a una reserva con check-in activo");
+    }
+
+    const product = await this.productsClient.getProduct(authorization, data.productId);
+
+    // Si no alcanza el stock, products-service responde 400 con un mensaje
+    // claro ("Stock insuficiente: disponible X, solicitado Y"); se propaga
+    // tal cual, sin registrar nada en la reserva.
+    await this.productsClient.removeStock(
+      authorization,
+      data.productId,
+      data.quantity,
+      `Consumo habitación ${current.roomNumber} - reserva ${id}`
+    );
+
+    const subtotal = product.price * data.quantity;
+
+    const reservation = await this.reservationRepository.addConsumption(id, {
+      productId: data.productId,
+      name: product.name,
+      unitPrice: product.price,
+      quantity: data.quantity,
+      subtotal,
+      addedAt: new Date()
+    });
+
+    if (!reservation) {
+      throw new Error("Reserva no encontrada");
+    }
+
+    await publishReservationConsumptionAdded({
+      reservationId: id,
+      roomId: current.roomId,
+      roomNumber: current.roomNumber,
+      productId: data.productId,
+      name: product.name,
+      quantity: data.quantity,
+      subtotal
+    });
 
     return reservation;
   }

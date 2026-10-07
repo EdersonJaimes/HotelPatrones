@@ -5,44 +5,53 @@ interface Props {
 }
 
 export default function RoomCard({ room, onStart, onView }: Props) {
-  const status = room.status?.toLowerCase();
+  // IMPORTANTE: rooms-service devuelve el status en inglés
+  // (available | occupied | cleaning | maintenance), no en español.
+  const status = room.status;
 
   // 🎨 colores por estado
   const getStatusColor = () => {
     switch (status) {
-      case "disponible":
+      case "available":
         return "bg-green-200 border-green-500";
-      case "ocupado":
+      case "occupied":
         return "bg-red-200 border-red-500";
-      case "limpieza":
+      case "cleaning":
         return "bg-yellow-200 border-yellow-500";
-      case "mantenimiento":
+      case "maintenance":
         return "bg-gray-300 border-gray-600";
       default:
         return "bg-white";
     }
   };
 
+  const statusLabel: Record<string, string> = {
+    available: "Disponible",
+    occupied: "Ocupada",
+    cleaning: "En limpieza",
+    maintenance: "Mantenimiento"
+  };
+
   // 🟢 botón dinámico
   const renderButton = () => {
-    if (status === "disponible") {
+    if (status === "available") {
       return (
         <button
           className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded mt-2"
           onClick={() => onStart(room._id)}
         >
-          Iniciar
+          Check-in
         </button>
       );
     }
 
-    if (status === "ocupado") {
+    if (status === "occupied") {
       return (
         <button
           className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mt-2"
           onClick={() => onView(room._id)}
         >
-          Gestionar
+          Ver cuenta
         </button>
       );
     }
@@ -66,7 +75,7 @@ export default function RoomCard({ room, onStart, onView }: Props) {
       </h2>
 
       <p className="mt-2 font-semibold capitalize">
-        {room.status}
+        {statusLabel[status] ?? room.status}
       </p>
 
       {renderButton()}

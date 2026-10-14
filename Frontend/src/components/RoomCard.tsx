@@ -1,15 +1,17 @@
+import { formatMoney } from "../utils/format";
+
 interface Props {
   room: any;
   onStart: (roomId: string) => void;
   onView: (roomId: string) => void;
+  onFinishCleaning: (roomId: string) => void;
 }
 
-export default function RoomCard({ room, onStart, onView }: Props) {
-  // IMPORTANTE: rooms-service devuelve el status en inglés
-  // (available | occupied | cleaning | maintenance), no en español.
+export default function RoomCard({ room, onStart, onView, onFinishCleaning }: Props) {
+  // rooms-service devuelve el status en inglés:
+  // available | occupied | cleaning | maintenance
   const status = room.status;
 
-  // 🎨 colores por estado
   const getStatusColor = () => {
     switch (status) {
       case "available":
@@ -28,11 +30,10 @@ export default function RoomCard({ room, onStart, onView }: Props) {
   const statusLabel: Record<string, string> = {
     available: "Disponible",
     occupied: "Ocupada",
-    cleaning: "En limpieza",
-    maintenance: "Mantenimiento"
+    cleaning: "En aseo",
+    maintenance: "Mantenimiento",
   };
 
-  // 🟢 botón dinámico
   const renderButton = () => {
     if (status === "available") {
       return (
@@ -56,6 +57,18 @@ export default function RoomCard({ room, onStart, onView }: Props) {
       );
     }
 
+    // Terminado el aseo, la habitación vuelve a quedar disponible.
+    if (status === "cleaning") {
+      return (
+        <button
+          className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded mt-2"
+          onClick={() => onFinishCleaning(room._id)}
+        >
+          Terminar aseo
+        </button>
+      );
+    }
+
     return (
       <button
         className="bg-gray-400 text-white px-3 py-1 rounded mt-2 cursor-not-allowed"
@@ -67,16 +80,12 @@ export default function RoomCard({ room, onStart, onView }: Props) {
   };
 
   return (
-    <div
-      className={`border-2 p-4 rounded-xl shadow text-center transition ${getStatusColor()}`}
-    >
-      <h2 className="text-lg font-bold">
-        Habitación {room.number}
-      </h2>
+    <div className={`border-2 p-4 rounded-xl shadow text-center transition ${getStatusColor()}`}>
+      <h2 className="text-lg font-bold">Habitación {room.number}</h2>
 
-      <p className="mt-2 font-semibold capitalize">
-        {statusLabel[status] ?? room.status}
-      </p>
+      <p className="mt-1 font-semibold">{statusLabel[status] ?? room.status}</p>
+
+      <p className="text-sm text-gray-600">{formatMoney(room.price)} / noche</p>
 
       {renderButton()}
     </div>

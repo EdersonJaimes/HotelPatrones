@@ -1,40 +1,69 @@
 import api from "./api";
 
 // Este archivo se llamaba "stayService" por el diseño anterior (estancias
-// por horas). Se mantiene el nombre del archivo para no romper los imports
-// existentes, pero ahora habla con /reservations (el modelo real del backend:
-// reserva → confirmación → check-in → check-out, con consumo de productos).
+// por horas). Se mantiene el nombre para no romper imports, pero ahora habla
+// con /reservations (reserva → check-in → consumo → check-out).
 
-// 🟢 Recepción: click en la habitación → check-in inmediato (crea, confirma
-// y hace check-in en un solo paso dentro de reservations-service).
+export interface AccountLine {
+  type: "room" | "product";
+  concept: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  addedAt?: string;
+}
+
+// Cuenta detallada que arma el backend: primero el hospedaje, luego cada producto.
+export interface Account {
+  lines: AccountLine[];
+  nights: number;
+  roomTotal: number;
+  productsTotal: number;
+  grandTotal: number;
+  closed: boolean;
+}
+
+export interface ReservationWithAccount {
+  _id: string;
+  roomId: string;
+  roomNumber: number;
+  clientName: string;
+  actualCheckIn?: string;
+  actualCheckOut?: string;
+  account: Account;
+  [key: string]: unknown;
+}
+
+// 🟢 click en habitación disponible → check-in inmediato (abre la cuenta con
+// el cargo de hospedaje ya incluido).
 export const quickCheckin = async (data: {
   roomId: string;
   clientName: string;
   clientDocument?: string;
   clientPhone?: string;
   guests?: number;
-}) => {
+}): Promise<ReservationWithAccount> => {
   const res = await api.post("/reservations/quick-checkin", data);
   return res.data;
 };
 
-// ➕ agregar producto a la cuenta de una reserva con check-in activo
+// ➕ cargar un producto a la cuenta (descuenta stock en products-service)
 export const addConsumption = async (
   reservationId: string,
   data: { productId: string; quantity: number }
-) => {
+): Promise<ReservationWithAccount> => {
   const res = await api.post(`/reservations/${reservationId}/consumptions`, data);
   return res.data;
 };
 
-// 🔴 checkout: calcula y persiste roomTotal + productsTotal + grandTotal
-export const checkout = async (reservationId: string) => {
+// 🔴 check-out: devuelve la cuenta definitiva y detallada
+export const checkout = async (reservationId: string): Promise<ReservationWithAccount> => {
   const res = await api.patch(`/reservations/${reservationId}/check-out`, {});
   return res.data;
 };
 
-// 📄 reserva con check-in activo para una habitación (para abrir su cuenta)
-export const getActiveReservation = async (roomId: string) => {
+// 📄 cuenta abierta de una habitación ocupada
+export const getActiveReservation = async (roomId: string): Promise<ReservationWithAccount> => {
   const res = await api.get(`/reservations/active/${roomId}`);
   return res.data;
 };

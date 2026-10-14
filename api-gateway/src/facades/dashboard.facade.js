@@ -1,29 +1,4 @@
-/**
- * PATRÓN FACADE (estructural) - aplicado como "BFF" (Backend For Frontend).
- *
- * Problema: Dashboard.tsx necesita UN solo objeto con estadísticas que en
- * realidad viven repartidas en 2 microservicios distintos (rooms-service y
- * products-service). Sin esta fachada, el frontend tendría que conocer la
- * existencia de ambos, llamarlos por separado y combinar los resultados él
- * mismo en el navegador.
- *
- * Solución: esta fachada expone un único método, getStats(token), que hace
- * el fan-out a los 3 subsistemas y entrega ya combinado lo que el frontend
- * necesita, con la MISMA forma que espera Dashboard.tsx:
- *   { clients, roomsOccupied, lowStock, topProducts }
- *
- * clients-service se agregó después de rooms-service y products-service: la
- * fachada solo necesitó un subsistema nuevo (ClientsClient) y una rama más
- * en Promise.allSettled. Ni getStats() cambió de firma ni Dashboard.tsx tuvo
- * que tocarse: esa es la ventaja de que el frontend dependa de la fachada y
- * no de los microservicios uno por uno.
- *
- * Resiliencia: usa Promise.allSettled en vez de Promise.all. Si uno de los
- * 2 microservicios está caído, el dashboard igual responde 200 con lo que sí
- * pudo obtener (en vez de que todo el dashboard falle por culpa de una sola
- * pieza). Los fallos quedan registrados en "warnings" (el frontend actual
- * ignora esa clave sin problema, pero ya queda lista para mostrarla).
- */
+
 class DashboardFacade {
   constructor(roomsClient, productsClient, clientsClient, options = {}) {
     this.roomsClient = roomsClient;
@@ -48,10 +23,17 @@ class DashboardFacade {
         ? roomsResult.value.filter((room) => room.status === "occupied").length
         : (warnings.push(`rooms-service: ${roomsResult.reason.message}`), null);
 
-    const lowStock =
+    // Lista con nombre y stock (de menor a mayor) para que el frontend pueda
+    // mostrar QUÉ productos están bajos, no solo cuántos.
+    const lowStockProducts =
       inventoryResult.status === "fulfilled"
-        ? inventoryResult.value.filter((row) => row.stock <= this.lowStockThreshold).length
+        ? inventoryResult.value
+            .filter((row) => row.stock <= this.lowStockThreshold)
+            .map((row) => ({ _id: row._id, name: row.product?.name, stock: row.stock }))
+            .sort((a, b) => a.stock - b.stock)
         : (warnings.push(`products-service (inventory): ${inventoryResult.reason.message}`), null);
+
+    const lowStock = lowStockProducts ? lowStockProducts.length : null;
 
     const topProducts =
       topConsumedResult.status === "fulfilled"
@@ -67,6 +49,8 @@ class DashboardFacade {
       clients,
       roomsOccupied,
       lowStock,
+      lowStockProducts: lowStockProducts ?? [],
+      lowStockThreshold: this.lowStockThreshold,
       topProducts,
       ...(warnings.length > 0 ? { warnings } : {})
     };

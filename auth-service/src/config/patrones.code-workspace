@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../clients-service"
+		},
+		{
+			"path": "../../../Frontend"
+		},
+		{
+			"path": "../../../products-service"
+		},
+		{
+			"path": "../../../reservations-service"
+		},
+		{
+			"path": "../../../rooms-service"
+		}
+	],
+	"settings": {}
+}

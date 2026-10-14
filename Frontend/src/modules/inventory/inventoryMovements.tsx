@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import DataTable from "../../components/DataTable";
 import { getMovements } from "../../services/inventoryService";
 import { movementColumns } from "../inventory/inventory.config";
-import { InventoryMovement } from "./inventory.types";
+import type { InventoryMovement } from "./inventory.types";
 
 interface Props {
   productId: string;

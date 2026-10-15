@@ -109,6 +109,11 @@ export class InventoryService {
     return movements.map(toMovementRow);
   }
 
+  async getRecentMovements(limit: number) {
+    const movements = await this.movementRepository.findRecent(limit);
+    return movements.map(toMovementRow);
+  }
+
   async getTopConsumed(limit: number) {
     return this.movementRepository.aggregateTopConsumed(limit);
   }

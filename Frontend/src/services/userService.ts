@@ -1,25 +1,12 @@
 import api from "./api";
+import type { User } from "../types/domain";
 
-// Listar
-export const getUsers = async () => {
-  const res = await api.get("/auth/users");
-  return res.data;
-};
+export const getUsers = async (): Promise<User[]> => (await api.get("/auth/users")).data;
 
-// Crear
-export const createUser = async (data: unknown) => {
-  const res = await api.post("/auth/users", data);
-  return res.data;
-};
+export const createUser = async (data: { username: string; name: string; password: string; role: User["role"] }) =>
+  (await api.post("/auth/users", data)).data;
 
-// Actualizar
-export const updateUser = async (id: string, data: unknown) => {
-  const res = await api.put(`/auth/users/${id}`, data);
-  return res.data;
-};
+export const updateUser = async (id: string, data: { name?: string; password?: string; role?: User["role"]; active?: boolean }) =>
+  (await api.put(`/auth/users/${id}`, data)).data;
 
-// Eliminar
-export const deleteUser = async (id: string) => {
-  const res = await api.delete(`/auth/users/${id}`);
-  return res.data;
-};
+export const deleteUser = async (id: string) => (await api.delete(`/auth/users/${id}`)).data;

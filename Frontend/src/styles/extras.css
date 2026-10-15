@@ -1,0 +1,131 @@
+/* Piezas que el diseño no trae pero la app real necesita: paginador, medidor de rendimiento,
+   laboratorio Facade y catálogo de pantallas. Usan los mismos tokens de hotel.css. */
+
+html, body, #root { margin: 0; min-height: 100%; }
+body { background: #f8f7f5; }
+@media (prefers-color-scheme: dark) { body.is-dark { background: #121110; } }
+body.is-dark { background: #121110; }
+
+.hp .link-btn { border: 0; background: none; padding: 0; font: inherit; color: var(--brand-ink); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- selector nativo con el mismo aspecto que .inp ---------- */
+select.inp { appearance: none; padding-right: 36px; background-image: linear-gradient(45deg, transparent 50%, var(--ink-muted) 50%), linear-gradient(135deg, var(--ink-muted) 50%, transparent 50%); background-position: calc(100% - 18px) 19px, calc(100% - 13px) 19px; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+.inp:disabled { opacity: .6; cursor: not-allowed; }
+
+/* ---------- paginador ---------- */
+.pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-top: 1px solid var(--line); }
+.pager .pg-info { font-size: 13px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.pager .pg-ctl { display: flex; align-items: center; gap: 6px; }
+.pager .pg-n { min-width: 64px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pager select { height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; padding: 0 8px; }
+.icon-btn.sq { width: 36px; height: 36px; border-radius: 10px; }
+.icon-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ---------- medidor de rendimiento (ms) ---------- */
+.perf-pill { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; font-variant-numeric: tabular-nums; transition: background var(--fast), box-shadow var(--base), transform var(--fast) var(--out); }
+.perf-pill:hover { background: var(--surface-2); box-shadow: var(--sh-md); transform: translateY(-1px); }
+.perf-pill .ms { color: var(--brand-ink); }
+.perf-pill.slow .ms { color: var(--warn); }
+.perf-pill.bad .ms { color: var(--err); }
+.load-chip { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; background: var(--surface-2); color: var(--ink-muted); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.load-chip b { color: var(--ink); }
+.load-chip.ok b.ms { color: var(--ok); }
+.load-chip.slow b.ms { color: var(--warn); }
+.load-chip.bad b.ms { color: var(--err); }
+.reqs { display: flex; flex-direction: column; }
+.req { display: grid; grid-template-columns: 52px minmax(0, 1fr) 62px 74px; align-items: center; column-gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13px; font-variant-numeric: tabular-nums; }
+.req:last-child { border-bottom: 0; }
+.req .m { font-weight: 800; font-size: 11px; letter-spacing: .04em; color: var(--ink-muted); }
+.req .u { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.req .t { text-align: right; font-weight: 800; }
+.req .t.slow { color: var(--warn); }
+.req .t.bad { color: var(--err); }
+.req .t.fail { color: var(--err); }
+.req .k { text-align: right; color: var(--ink-muted); }
+
+/* ---------- laboratorio Facade ---------- */
+.lab { display: flex; flex-direction: column; gap: 20px; }
+.lab-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.seg.facade-seg .seg-btn.on-facade { color: var(--ok); }
+.seg.facade-seg .seg-btn.on-direct { color: var(--err); }
+.lab-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.lab-stat { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 14px; background: var(--surface-2); }
+.lab-stat .amt-lg { font-size: 24px; line-height: 30px; }
+.flow-wrap { border-radius: 18px; background: var(--surface-2); padding: 14px; overflow: hidden; }
+.flow { width: 100%; height: auto; display: block; }
+.flow text { font-family: inherit; fill: var(--ink); }
+.flow .t-mute { fill: var(--ink-muted); font-size: 11px; font-weight: 600; }
+.flow .t-sm { font-size: 12px; font-weight: 700; }
+.flow .t-ms { font-size: 12px; font-weight: 800; fill: var(--brand-ink); font-variant-numeric: tabular-nums; }
+.flow .node { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.2; }
+.flow .node.gw { stroke: var(--brand-strong); stroke-width: 2; fill: var(--brand-tint); }
+.flow .node.gw.proxy { stroke: var(--line-strong); fill: var(--surface); }
+.flow .edge { fill: none; stroke: var(--brand-strong); stroke-width: 2; stroke-dasharray: 6 6; animation: dash 1.1s linear infinite; }
+.flow .edge.out { stroke: var(--ok); }
+.flow .edge.bad { stroke: var(--err); }
+.flow .edge.thin { stroke-width: 1.4; }
+@keyframes dash { to { stroke-dashoffset: -24; } }
+.hp.still .flow .edge { animation: none; }
+@media (prefers-reduced-motion: reduce) { .flow .edge { animation: none; } }
+.wf { display: flex; flex-direction: column; gap: 8px; }
+.wf-row { display: grid; grid-template-columns: minmax(120px, 190px) minmax(0, 1fr) 118px; align-items: center; column-gap: 12px; font-size: 13px; }
+.wf-row .nm { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-row .tr-track { position: relative; height: 12px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.wf-row .tr-bar { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: var(--brand); min-width: 3px; }
+.wf-row .tr-bar.is-facade { background: var(--ok); }
+.wf-row .val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.bench { display: flex; flex-direction: column; gap: 14px; }
+.bench-row { display: grid; grid-template-columns: minmax(140px, 220px) minmax(0, 1fr) 92px; align-items: center; column-gap: 14px; }
+.bench-row .lbl2 { font-weight: 700; font-size: 14px; }
+.bench-row .sub { font-size: 12px; color: var(--ink-muted); font-weight: 500; }
+.bench-track { position: relative; height: 22px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.bench-bar { height: 100%; border-radius: 999px; background: var(--brand); transform-origin: left; animation: grow 700ms var(--out) both; }
+.bench-bar.is-facade { background: var(--ok); }
+.bench-bar.serie { background: var(--err); }
+.bench-p95 { position: absolute; top: 3px; bottom: 3px; width: 3px; border-radius: 2px; background: var(--ink); opacity: .7; }
+.bench-row .val { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+.prog { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.prog > i { display: block; height: 100%; border-radius: 999px; background: var(--brand); transition: width var(--base) var(--out); }
+.field-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.field-row .fld { grid-column: auto; flex: 0 1 190px; }
+@media (max-width: 720px) {
+  .wf-row { grid-template-columns: 96px minmax(0, 1fr); }
+  .wf-row .val { grid-column: 1 / -1; text-align: left; }
+  .bench-row { grid-template-columns: 1fr; row-gap: 6px; }
+  .bench-row .val { text-align: left; }
+}
+
+/* ---------- facade del panel: aviso de pisos recortados ---------- */
+.floor-tag { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: rgba(255, 255, 255, .5); }
+
+/* ---------- catálogo de las 42 pantallas ---------- */
+.cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 12px; }
+.cat-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; transition: transform var(--fast) var(--out), box-shadow var(--base), border-color var(--base); }
+.hp a.cat-item { color: var(--ink); }
+.cat-item:hover { transform: translateY(-2px); box-shadow: var(--sh-md); border-color: var(--line-strong); }
+.cat-n { width: 34px; height: 34px; border-radius: 10px; background: var(--brand-tint); color: var(--brand-ink); display: grid; place-items: center; font-weight: 800; font-size: 12px; font-variant-numeric: tabular-nums; flex: none; }
+.cat-t { font-weight: 700; font-size: 14px; line-height: 20px; }
+.cat-s { font-size: 12px; color: var(--ink-muted); }
+
+/* ---------- carga de tablas ---------- */
+.tbl-skel { display: flex; flex-direction: column; gap: 0; }
+.tbl-skel .tr { min-height: 68px; }
+.refreshing { opacity: .6; transition: opacity var(--base); pointer-events: none; }
+
+/* ---------- varios ---------- */
+.row-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.sticky-hint { font-size: 12px; color: var(--ink-muted); }
+.hp .btn.sm.t-brand { background: var(--brand-tint); color: var(--brand-ink); }
+.err-box { max-width: 560px; margin: 48px auto; width: 100%; }
+.pick-search { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-muted); }
+.pick-search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: inherit; color: var(--ink); }
+.pick-search:focus-within { border-color: var(--brand-strong); box-shadow: 0 0 0 4px var(--brand-tint); }
+.pick-scroll { max-height: 220px; overflow: auto; }
+
+/* login: el botón del diseño era un <a>; aquí es un <button type="submit"> */
+.lg-btn { width: 100%; border: 0; cursor: pointer; font-family: inherit; }
+.lg-btn:disabled { cursor: progress; }
+.lg-row a { text-decoration: underline; text-underline-offset: 3px; }
+
+/* los .kpis del diseño crecen dentro de .hero; fuera de él (Inventario) no deben estirarse a lo alto */
+.stack > .kpis { flex: none; }

@@ -17,6 +17,11 @@ export class InventoryMovementRepository {
     return InventoryMovement.find({ productId }).sort({ date: -1 });
   }
 
+  // Kardex general: los últimos N movimientos de todos los productos.
+  async findRecent(limit: number): Promise<IInventoryMovement[]> {
+    return InventoryMovement.find().sort({ date: -1 }).limit(limit);
+  }
+
   // Suma las salidas (consumo) por producto y devuelve el top N.
   // Forma de salida ({_id, total}) pensada para calzar tal cual con lo que
   // espera Dashboard.tsx del frontend.

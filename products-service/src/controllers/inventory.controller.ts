@@ -39,6 +39,15 @@ export class InventoryController {
     }
   };
 
+  recentMovements = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const limit = Number(req.query.limit) || 100;
+      res.status(200).json(await this.inventoryService.getRecentMovements(limit));
+    } catch (error) {
+      sendError(res, error, "Error obteniendo el kardex");
+    }
+  };
+
   topConsumed = async (req: Request, res: Response): Promise<void> => {
     try {
       const limit = Number(req.query.limit) || 5;

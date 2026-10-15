@@ -1,4 +1,5 @@
-// Mide el tiempo de armar el dashboard: con Facade (1 petición) vs sin Facade (4 peticiones).
+// Mide el tiempo de armar el dashboard: con Facade (1 petición) vs sin Facade (5 peticiones).
+// Uso: node medir-tiempos.js resultados.json   (con el sistema encendido; mejor tras sembrar con seed-20000.js)
 const fs = require("fs");
 const BASE = "http://localhost:3000/api";
 const N = 100;
@@ -16,15 +17,16 @@ const get = async (path, rtt) => {
 const modes = {
   // 1 petición; el gateway hace el fan-out por la red interna
   conFacade: (rtt) => get("/dashboard/stats", rtt),
-  // 4 peticiones simultáneas (lo mejor que puede hacer el navegador sin Facade)
+  // 5 peticiones simultáneas (lo mejor que puede hacer el navegador sin Facade)
   sinFacadeParalelo: (rtt) =>
-    Promise.all([get("/rooms", rtt), get("/inventory", rtt), get("/inventory/top-consumed?limit=5", rtt), get("/clients", rtt)]),
-  // 4 peticiones una tras otra (código ingenuo con await en serie)
+    Promise.all([get("/rooms", rtt), get("/inventory", rtt), get("/inventory/top-consumed?limit=5", rtt), get("/clients", rtt), get("/reservations", rtt)]),
+  // 5 peticiones una tras otra (código ingenuo con await en serie)
   sinFacadeSerie: async (rtt) => {
     await get("/rooms", rtt);
     await get("/inventory", rtt);
     await get("/inventory/top-consumed?limit=5", rtt);
     await get("/clients", rtt);
+    await get("/reservations", rtt);
   }
 };
 

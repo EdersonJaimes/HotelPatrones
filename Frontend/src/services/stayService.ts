@@ -1,29 +1,16 @@
 import api from "./api";
+import type { Checkout, Stay } from "../types/domain";
 
-// 🟢 iniciar estancia
-export const startStay = async (roomId: string) => {
-  const res = await api.post("/stays/start", { roomId });
-  return res.data;
-};
+// Iniciar estancia (check-in de mostrador): la habitación pasa a ocupada.
+export const startStay = async (roomId: string): Promise<Stay> => (await api.post("/stays/start", { roomId })).data;
 
-// ➕ agregar producto
-export const addProduct = async (data: {
-  stayId: string;
-  productId: string;
-  quantity: number;
-}) => {
-  const res = await api.post("/stays/add-product", data);
-  return res.data;
-};
+export const addProduct = async (data: { stayId: string; productId: string; quantity: number }): Promise<Stay> =>
+  (await api.post("/stays/add-product", data)).data;
 
-// 🔴 checkout
-export const checkout = async (stayId: string) => {
-  const res = await api.post("/stays/checkout", { stayId });
-  return res.data;
-};
+// Cierra la cuenta: calcula horas y totales y deja la habitación en aseo.
+export const checkout = async (stayId: string): Promise<Checkout> => (await api.post("/stays/checkout", { stayId })).data;
 
-// 📄 obtener estancia activa
-export const getActiveStay = async (roomId: string) => {
-  const res = await api.get(`/stays/active/${roomId}`);
-  return res.data;
-};
+export const getActiveStay = async (roomId: string): Promise<Stay> => (await api.get(`/stays/active/${roomId}`)).data;
+
+export const listStays = async (status?: "active" | "closed"): Promise<Stay[]> =>
+  (await api.get("/stays", { params: status ? { status } : undefined })).data;

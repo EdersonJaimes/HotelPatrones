@@ -1,78 +1,22 @@
 import api from "./api";
-import type {
-  Inventory,
-  InventoryMovement,
-} from "../modules/inventory/inventory.types";
+import type { InventoryMovement, InventoryRow } from "../types/domain";
 
-// 🔥 DEFINIMOS LOS ENDPOINTS AQUÍ (SOLUCIÓN)
-const INVENTORY_ENDPOINTS = {
-  BASE: "/inventory",
-  GET_ALL: "",
-  ADD: "/add",
-  REMOVE: "/remove",
-  MOVEMENTS: (productId: string) => `/movements/${productId}`,
-};
+export const getInventory = async (): Promise<InventoryRow[]> => (await api.get("/inventory")).data;
 
-// 📦 obtener inventario
-export const getInventory = async (): Promise<Inventory[]> => {
-  try {
-    const res = await api.get(
-      `${INVENTORY_ENDPOINTS.BASE}${INVENTORY_ENDPOINTS.GET_ALL}`
-    );
-    return res.data;
-  } catch (err: any) {
-    console.error("Error getInventory:", err.response?.data || err);
-    throw err;
-  }
-};
+export const addStock = async (data: { productId: string; quantity: number; reason: string }) =>
+  (await api.post("/inventory/add", data)).data;
 
-// ➕ agregar stock
-export const addStock = async (data: {
-  productId: string;
-  quantity: number;
-  reason: string;
-}) => {
-  try {
-    const res = await api.post(
-      `${INVENTORY_ENDPOINTS.BASE}${INVENTORY_ENDPOINTS.ADD}`,
-      data
-    );
-    return res.data;
-  } catch (err: any) {
-    console.error("Error addStock:", err.response?.data || err);
-    throw err;
-  }
-};
+export const removeStock = async (data: { productId: string; quantity: number; reason: string }) =>
+  (await api.post("/inventory/remove", data)).data;
 
-// ➖ descontar stock
-export const removeStock = async (data: {
-  productId: string;
-  quantity: number;
-  reason: string;
-}) => {
-  try {
-    const res = await api.post(
-      `${INVENTORY_ENDPOINTS.BASE}${INVENTORY_ENDPOINTS.REMOVE}`,
-      data
-    );
-    return res.data;
-  } catch (err: any) {
-    console.error("Error removeStock:", err.response?.data || err);
-    throw err;
-  }
-};
+// Historial de un producto (el más reciente primero).
+export const getMovements = async (productId: string): Promise<InventoryMovement[]> =>
+  (await api.get(`/inventory/movements/${productId}`)).data;
 
-// 📄 historial de movimientos
-export const getMovements = async (
-  productId: string
-): Promise<InventoryMovement[]> => {
-  try {
-    const res = await api.get(
-      `${INVENTORY_ENDPOINTS.BASE}${INVENTORY_ENDPOINTS.MOVEMENTS(productId)}`
-    );
-    return res.data;
-  } catch (err: any) {
-    console.error("Error getMovements:", err.response?.data || err);
-    throw err;
-  }
-};
+// Kardex general: últimos movimientos de todos los productos.
+export const getRecentMovements = async (limit = 200): Promise<InventoryMovement[]> =>
+  (await api.get("/inventory/movements", { params: { limit } })).data;
+
+// Total consumido por producto ({ _id, total }), de mayor a menor.
+export const getTopConsumed = async (limit = 5000): Promise<{ _id: string; total: number }[]> =>
+  (await api.get("/inventory/top-consumed", { params: { limit } })).data;

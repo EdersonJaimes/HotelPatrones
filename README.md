@@ -29,6 +29,21 @@ docker compose up -d mongo rabbitmq
 
 Cada servicio tiene su `.env.example`; copia como `.env` y usa el mismo `JWT_SECRET` en todos.
 
+## Datos de ejemplo (~20 000 registros) y pantallas
+
+```bash
+node docs/presentacion/seed-20000.js        # con el sistema encendido; tarda unos minutos
+```
+
+Siembra 8 000 clientes, 1 200 productos, 6 000 movimientos de kardex, 4 500 reservas, 120 habitaciones,
+~200 estancias de mostrador y 6 usuarios de recepción (contraseña `hotel123`). Con ese volumen se ven los
+cambios de tiempo (ms) en el Panel: **Laboratorio · Facade vs. sin Facade** compara 1 petición al gateway
+contra 5 peticiones del navegador (y descarga de ~10 KB contra varios MB). Desde la terminal:
+`node docs/presentacion/medir-tiempos.js resultados.json`.
+
+El diseño de las 42 pantallas está implementado en el Frontend: la ruta `/screens` las lista y cada estado
+se abre con `?vista=` (ver `Frontend/README.md`).
+
 ## Servicios
 
 | Servicio              | Puerto | Base de datos     | Responsabilidad                                   |
@@ -48,7 +63,7 @@ Cada servicio tiene su propio README con endpoints y eventos.
 
 - El navegador solo habla con el **gateway** (`/api/...`), que reparte por prefijo.
   `GET /api/dashboard/stats` no es un proxy: la Facade del gateway consulta rooms,
-  products y clients y arma una sola respuesta.
+  products, clients y reservations y arma una sola respuesta.
 - **Eventos** (exchange `hotel_events`): rooms publica `room.*` y reservations los
   consume para mantener su copia de habitaciones; reservations publica
   `reservation.checked_in/out` y rooms ajusta el estado físico; stays publica

@@ -1,18 +1,22 @@
 import api from "./api";
+import type { Room, RoomPrototype, RoomStatus, RoomType } from "../types/domain";
 
-export const getRooms = async () => {
-  const res = await api.get("/rooms");
-  return res.data;
-};
+export const getRooms = async (): Promise<Room[]> => (await api.get("/rooms")).data;
 
-export const createRoom = async (data: any) => {
-  return (await api.post("/rooms", data)).data;
-};
+export const getRoom = async (id: string): Promise<Room> => (await api.get(`/rooms/${id}`)).data;
 
-export const updateRoom = async (id: string, data: any) => {
-  return (await api.put(`/rooms/${id}`, data)).data;
-};
+// Patrón Prototype: las plantillas por tipo (tarifa sugerida, rango, capacidad, comodidades).
+export const getPrototypes = async (): Promise<RoomPrototype[]> => (await api.get("/rooms/prototypes")).data;
 
-export const deleteRoom = async (id: string) => {
-  return (await api.delete(`/rooms/${id}`)).data;
-};
+export const createRoomFromPrototype = async (
+  type: RoomType,
+  data: { number: number; price?: number; amenities?: string[]; status?: RoomStatus }
+): Promise<Room> => (await api.post(`/rooms/prototypes/${type}`, data)).data;
+
+export const updateRoom = async (id: string, data: Partial<Room>): Promise<Room> =>
+  (await api.put(`/rooms/${id}`, data)).data;
+
+export const setRoomStatus = async (id: string, status: RoomStatus): Promise<Room> =>
+  (await api.patch(`/rooms/${id}/status`, { status })).data;
+
+export const deleteRoom = async (id: string) => (await api.delete(`/rooms/${id}`)).data;

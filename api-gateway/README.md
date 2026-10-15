@@ -17,8 +17,9 @@ del frontend hacia cada microservicio interno según el prefijo de la ruta.
 ## Dashboard: patrón Facade (BFF)
 
 `GET /api/dashboard/stats` no se reenvía: `src/facades/dashboard.facade.js`
-consulta en paralelo rooms, products y clients (cada uno con su cliente en
-`src/facades/subsystem/`) y devuelve `{ clients, roomsOccupied, lowStock, topProducts }`.
+consulta en paralelo rooms, products, clients y reservations (cada uno con su cliente en
+`src/facades/subsystem/`) y devuelve `{ clients, roomsOccupied, lowStock, topProducts, rooms,
+lowStockItems, reservations }` (todo lo que pinta el Panel del Frontend).
 Usa `Promise.allSettled`: si un servicio está caído, responde con lo que sí pudo
 obtener y deja el motivo en `warnings`.
 

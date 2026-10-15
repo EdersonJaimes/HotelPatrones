@@ -4,6 +4,7 @@ import { authenticateToken, requireRole } from "../middlewares/auth.middleware";
 import { validateRequest } from "../middlewares/validation.middleware";
 import {
   movementsProductIdValidator,
+  recentMovementsValidator,
   stockMovementValidator,
   topConsumedValidator
 } from "../validators/inventory.validator";
@@ -21,6 +22,15 @@ router.get(
   topConsumedValidator,
   validateRequest,
   controller.topConsumed
+);
+
+// Kardex general (últimos movimientos de todos los productos).
+router.get(
+  "/movements",
+  authenticateToken,
+  recentMovementsValidator,
+  validateRequest,
+  controller.recentMovements
 );
 
 router.get(

@@ -7,6 +7,7 @@ const { DashboardFacade } = require("./src/facades/dashboard.facade");
 const { RoomsClient } = require("./src/facades/subsystem/rooms.client");
 const { ProductsClient } = require("./src/facades/subsystem/products.client");
 const { ClientsClient } = require("./src/facades/subsystem/clients.client");
+const { ReservationsClient } = require("./src/facades/subsystem/reservations.client");
 
 const app = express();
 
@@ -52,11 +53,12 @@ const dashboardFacade = new DashboardFacade(
   new RoomsClient(ROOMS_URL),
   new ProductsClient(PRODUCTS_URL),
   new ClientsClient(CLIENTS_URL),
+  new ReservationsClient(RESERVATIONS_URL),
   { lowStockThreshold: Number(process.env.LOW_STOCK_THRESHOLD) || 5 }
 );
 
 // Único endpoint del gateway que NO es un simple proxy: agrega datos de
-// rooms-service, products-service y clients-service en una sola respuesta (patrón Facade / BFF).
+// rooms, products, clients y reservations-service en una sola respuesta (patrón Facade / BFF).
 app.get("/api/dashboard/stats", async (req, res) => {
   const authorization = req.headers.authorization;
 

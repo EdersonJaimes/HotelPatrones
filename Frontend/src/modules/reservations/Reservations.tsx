@@ -1,229 +1,225 @@
-import { useEffect, useState } from "react";
-import Button from "../../components/Button";
-import DataTable from "../../components/DataTable";
-import Form from "../../components/Form";
-import Modal from "../../components/Modal";
-
-import { getRooms } from "../../services/roomService";
+import { useDeferredValue, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { errMsg, fdate, fmt, initials, num, plural } from "../../lib/format";
+import { useResource } from "../../lib/useResource";
 import {
   cancelReservation,
   checkInReservation,
   checkOutReservation,
   confirmReservation,
-  createReservation,
   getReservations,
-  updateReservation,
 } from "../../services/reservationService";
+import { getRooms } from "../../services/roomService";
+import type { Reservation, ReservationStatus } from "../../types/domain";
+import Icon from "../../ui/Icon";
+import { Badge, Empty, ErrorCard, LoadChip, Pager, Seg, Table, type Column } from "../../ui/parts";
+import { Page } from "../../ui/Shell";
+import { usePaging } from "../../lib/usePaging";
+import { useToast } from "../../ui/Toast";
+import { CancelModal, ReservationDetail, ReservationForm, type DetailAction } from "./ReservationOverlays";
+import { CHANNELS, RES_STATUS } from "./policy";
 
-import {
-  closeAlert,
-  confirmAction,
-  error,
-  loadingAlert,
-  success,
-} from "../../utils/alerts";
+type Filter = "all" | ReservationStatus;
 
-import { buildReservationColumns, getReservationFields } from "./reservation.config";
-import type { Reservation } from "./reservation.types";
+type ModalState =
+  | { kind: "form"; editing: Reservation | null; invalid?: boolean }
+  | { kind: "detail"; id: string }
+  | { kind: "cancel"; id: string };
+
+async function loadPage() {
+  const [list, rooms] = await Promise.all([getReservations(), getRooms()]);
+  return { list, rooms: rooms.sort((a, b) => a.number - b.number) };
+}
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "Todas" },
+  { key: "pending", label: "Pendientes" },
+  { key: "confirmed", label: "Confirmadas" },
+  { key: "checked_in", label: "En casa" },
+  { key: "checked_out", label: "Finalizadas" },
+  { key: "cancelled", label: "Canceladas" },
+];
 
 export default function Reservations() {
-  const [data, setData] = useState<Reservation[]>([]);
-  const [rooms, setRooms] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Reservation | null>(null);
+  const toast = useToast();
+  const [params] = useSearchParams();
+  const vista = params.get("vista"); // nueva | validacion | detalle | cancelar
 
-  const loadData = async () => {
+  const res = useResource(loadPage);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [q, setQ] = useState("");
+  const query = useDeferredValue(q.trim().toLowerCase());
+  const [modal, setModal] = useState<ModalState | null>(null);
+  const [vistaDone, setVistaDone] = useState(false);
+  const [fresh, setFresh] = useState<string | null>(null);
+
+  const all = res.data?.list ?? [];
+  const rooms = res.data?.rooms ?? [];
+  const byId = (id: string) => all.find((r) => r._id === id);
+
+  const open = (m: ModalState | null) => {
+    setModal(m);
+    setVistaDone(true);
+  };
+
+  // ?vista=: abre el estado del diseño apenas hay datos (una sola vez).
+  let shown = modal;
+  if (!shown && !vistaDone && res.data) {
+    const actionable = all.find((r) => r.status === "pending" || r.status === "confirmed") ?? all[0];
+    if (vista === "nueva") shown = { kind: "form", editing: null };
+    if (vista === "validacion") shown = { kind: "form", editing: null, invalid: true };
+    if (vista === "detalle" && actionable) shown = { kind: "detail", id: actionable._id };
+    if (vista === "cancelar" && actionable) shown = { kind: "cancel", id: actionable._id };
+  }
+
+  const mark = (id: string) => {
+    setFresh(id);
+    setTimeout(() => setFresh((f) => (f === id ? null : f)), 1900);
+  };
+
+  const transition = async (r: Reservation, run: (id: string) => Promise<Reservation>, done: string) => {
     try {
-      const res = await getReservations();
-      setData(res);
-    } catch {
-      error("Error al cargar reservas");
+      await run(r._id);
+      mark(r._id);
+      res.refresh();
+      toast(done);
+      return true;
+    } catch (e) {
+      toast(errMsg(e, "No se pudo completar la acción"), "err");
+      return false;
     }
   };
 
-  const loadRooms = async () => {
-    try {
-      const res = await getRooms();
-      setRooms(res);
-    } catch {
-      error("Error al cargar habitaciones");
-    }
+  const doConfirm = (r: Reservation) => transition(r, confirmReservation, "Reserva confirmada");
+  const doCheckIn = (r: Reservation) => transition(r, checkInReservation, `Check-in listo · ${r.clientName} en la ${r.roomNumber}`);
+  const doCheckOut = (r: Reservation) => transition(r, checkOutReservation, `Check-out hecho · habitación ${r.roomNumber} a aseo`);
+
+  const doCancel = async (r: Reservation) => {
+    const updated = await cancelReservation(r._id);
+    const pen = updated.cancellationPenalty ?? 0;
+    mark(r._id);
+    res.refresh();
+    open(null);
+    toast(`Reserva cancelada${pen ? ` · penalidad ${fmt(pen)}` : " sin penalidad"}`, "mute");
   };
 
-  useEffect(() => {
-    loadData();
-    loadRooms();
-  }, []);
-
-  // VALIDACIÓN
-  const validateForm = (form: any) => {
-    if (!form.roomId) return "La habitación es obligatoria";
-    if (!form.clientName) return "El nombre del cliente es obligatorio";
-    if (!form.checkIn) return "El check-in es obligatorio";
-    if (!form.checkOut) return "El check-out es obligatorio";
-    if (!form.guests) return "El número de huéspedes es obligatorio";
-    if (isNaN(Number(form.guests))) return "El número de huéspedes debe ser numérico";
-    if (!editing && !form.channel) return "El canal es obligatorio";
-
-    return null;
+  const buttons = (r: Reservation, inDrawer: boolean): DetailAction[] => {
+    const b: DetailAction[] = [];
+    const sm = inDrawer ? "" : " sm";
+    if (r.status === "pending") b.push({ label: "Confirmar", cls: `btn${sm} t-info`, run: async () => { if (await doConfirm(r) && inDrawer) open(null); } });
+    if (r.status === "confirmed") b.push({ label: "Check-in", cls: `btn${sm} t-ok`, run: async () => { if (await doCheckIn(r) && inDrawer) open(null); } });
+    if (r.status === "checked_in" && inDrawer) b.push({ label: "Hacer check-out", cls: "btn t-warn", run: async () => { if (await doCheckOut(r)) open(null); } });
+    if (r.status === "checked_in" && !inDrawer) b.push({ label: "Ver detalle", cls: "btn sm ghost", run: () => open({ kind: "detail", id: r._id }) });
+    if (inDrawer && r.status === "pending") b.push({ label: "Editar", cls: "btn ghost", run: () => open({ kind: "form", editing: r }) });
+    if (r.status === "pending" || r.status === "confirmed") b.push({ label: "Cancelar", cls: `btn${sm} t-err`, run: () => open({ kind: "cancel", id: r._id }) });
+    return b;
   };
 
-  // SUBMIT
-  const handleSubmit = async (form: any) => {
-    const validationError = validateForm(form);
+  const base = all.filter((r) => filter === "all" || r.status === filter);
+  const rows = base
+    .filter((r) => !query || `${r.clientName} ${r.roomNumber} ${CHANNELS[r.channel].label} ${r.clientDocument ?? ""}`.toLowerCase().includes(query))
+    .sort((a, b) => Date.parse(b.checkIn) - Date.parse(a.checkIn));
+  const paging = usePaging(rows, `${filter}|${query}`);
+  const countOf = (k: Filter) => (k === "all" ? all.length : all.filter((r) => r.status === k).length);
 
-    if (validationError) {
-      return error(validationError);
-    }
+  const columns: Column<Reservation>[] = [
+    { header: "Hab.", width: "64px", cell: (r) => <span className="amt">{r.roomNumber}</span> },
+    {
+      header: "Huésped",
+      width: "minmax(220px, 1.4fr)",
+      cell: (r) => (
+        <button className="linkish person" onClick={() => open({ kind: "detail", id: r._id })} aria-label={`Ver reserva de ${r.clientName}`}>
+          <span className="av">{initials(r.clientName)}</span>
+          <span className="pc">
+            <span className="strong" style={{ display: "block" }}>{r.clientName}</span>
+            <span className="muted sm-text">{CHANNELS[r.channel].label} · {plural(r.guests, "persona", "personas")}</span>
+          </span>
+        </button>
+      ),
+    },
+    { header: "Llegada", width: "120px", cell: (r) => <span className="sm-text">{fdate(r.checkIn)}</span> },
+    { header: "Salida", width: "120px", cell: (r) => <span className="sm-text">{fdate(r.checkOut)}</span> },
+    { header: "Total", width: "130px", num: true, cell: (r) => <span className="amt">{fmt(r.totalPrice)}</span> },
+    { header: "Estado", width: "130px", cell: (r) => <Badge tone={RES_STATUS[r.status].tone}>{RES_STATUS[r.status].label}</Badge> },
+    {
+      header: "Acciones",
+      width: "minmax(220px, 1fr)",
+      num: true,
+      cell: (r) => {
+        const b = buttons(r, false);
+        return (
+          <div className="acts">
+            {b.map((x) => <button key={x.label} className={x.cls} onClick={x.run}>{x.label}</button>)}
+            {b.length === 0 && <span className="muted">—</span>}
+          </div>
+        );
+      },
+    },
+  ];
 
-    try {
-      loadingAlert("Guardando reserva...");
-
-      if (editing) {
-        await updateReservation(editing._id, {
-          clientName: form.clientName,
-          clientDocument: form.clientDocument,
-          clientPhone: form.clientPhone,
-          checkIn: form.checkIn,
-          checkOut: form.checkOut,
-          guests: Number(form.guests),
-          notes: form.notes,
-        });
-        closeAlert();
-        success("Reserva actualizada");
-      } else {
-        await createReservation({
-          roomId: form.roomId,
-          clientName: form.clientName,
-          clientDocument: form.clientDocument,
-          clientPhone: form.clientPhone,
-          checkIn: form.checkIn,
-          checkOut: form.checkOut,
-          guests: Number(form.guests),
-          channel: form.channel,
-          notes: form.notes,
-        });
-        closeAlert();
-        success("Reserva creada");
-      }
-
-      setOpen(false);
-      setEditing(null);
-      loadData();
-
-    } catch (err: any) {
-      closeAlert();
-
-      if (err.response?.data?.message) {
-        error(err.response.data.message);
-      } else {
-        error("Error al guardar reserva");
-      }
-    }
-  };
-
-  // TRANSICIONES DE ESTADO
-  const handleConfirm = async (row: Reservation) => {
-    try {
-      loadingAlert("Confirmando reserva...");
-      await confirmReservation(row._id);
-      closeAlert();
-      success("Reserva confirmada");
-      loadData();
-    } catch (err: any) {
-      closeAlert();
-      error(err.response?.data?.message || "Error al confirmar reserva");
-    }
-  };
-
-  const handleCheckIn = async (row: Reservation) => {
-    try {
-      loadingAlert("Registrando check-in...");
-      await checkInReservation(row._id);
-      closeAlert();
-      success("Check-in registrado. La habitación quedó ocupada.");
-      loadData();
-    } catch (err: any) {
-      closeAlert();
-      error(err.response?.data?.message || "Error al registrar check-in");
-    }
-  };
-
-  const handleCheckOut = async (row: Reservation) => {
-    try {
-      loadingAlert("Registrando check-out...");
-      await checkOutReservation(row._id);
-      closeAlert();
-      success("Check-out registrado. La habitación pasó a limpieza.");
-      loadData();
-    } catch (err: any) {
-      closeAlert();
-      error(err.response?.data?.message || "Error al registrar check-out");
-    }
-  };
-
-  const handleCancel = async (row: Reservation) => {
-    const result = await confirmAction("Se cancelará la reserva");
-
-    if (!result.isConfirmed) return;
-
-    try {
-      loadingAlert("Cancelando reserva...");
-      await cancelReservation(row._id);
-      closeAlert();
-      success("Reserva cancelada");
-      loadData();
-    } catch (err: any) {
-      closeAlert();
-      error(err.response?.data?.message || "Error al cancelar reserva");
-    }
-  };
+  const detail = shown?.kind === "detail" ? byId(shown.id) : undefined;
+  const cancelling = shown?.kind === "cancel" ? byId(shown.id) : undefined;
 
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">Reservas</h1>
+    <Page
+      title="Reservas"
+      service="reservations-service"
+      subtitle="Del primer contacto al check-out"
+      search={{ value: q, onChange: setQ, placeholder: "Huésped, documento o habitación", label: "Buscar reservas" }}
+      actions={
+        <button className="btn primary plus" onClick={() => open({ kind: "form", editing: null })}>
+          <Icon name="plus" />
+          Nueva reserva
+        </button>
+      }
+    >
+      {res.status === "error" && <ErrorCard title="No pudimos cargar las reservas" text={res.error} onRetry={res.reload} />}
 
-      <Button
-        text="+ Nueva"
-        onClick={() => {
-          setEditing(null);
-          setOpen(true);
-        }}
-        type="success"
-      />
+      {res.status !== "error" && (
+        <>
+          <div className="bar-row">
+            <Seg<Filter> label="Filtrar reservas" value={filter} onChange={setFilter} items={FILTERS.map((f) => ({ ...f, count: countOf(f.key) }))} />
+            <div className="row-btns" style={{ alignItems: "center" }}>
+              <span className="muted sm-text">
+                {query ? `${num(rows.length)} de ${num(base.length)} reservas` : plural(base.length, "reserva", "reservas")}
+              </span>
+              <LoadChip stats={res.stats} records={all.length} noun="reservas" />
+            </div>
+          </div>
 
-      <DataTable
-        data={data}
-        columns={buildReservationColumns({
-          onConfirm: handleConfirm,
-          onCheckIn: handleCheckIn,
-          onCheckOut: handleCheckOut,
-          onCancel: handleCancel,
-        })}
-        onEdit={(row: Reservation) => {
-          setEditing(row);
-          setOpen(true);
-        }}
-      />
+          <div className={res.refreshing ? "refreshing" : undefined}>
+            <Table
+              label="Reservas"
+              columns={columns}
+              rows={paging.slice}
+              rowKey={(r) => r._id}
+              minWidth={1120}
+              freshId={fresh}
+              loading={res.status === "loading"}
+              empty={<Empty icon="calendar" title={query ? `Nada coincide con “${q.trim()}”.` : "No hay reservas en este estado."} />}
+              footer={<Pager paging={paging} noun="reservas" />}
+            />
+          </div>
+        </>
+      )}
 
-      <Modal
-        isOpen={open}
-        onClose={() => {
-          setOpen(false);
-          setEditing(null);
-        }}
-        title={editing ? "Editar Reserva" : "Nueva Reserva"}
-      >
-        <Form
-          fields={getReservationFields(rooms)}
-          initialData={editing}
-          onSubmit={handleSubmit}
-          onCancel={() => {
-            setOpen(false);
-            setEditing(null);
+      {shown?.kind === "form" && (
+        <ReservationForm
+          rooms={rooms}
+          editing={shown.editing}
+          invalid={shown.invalid}
+          onClose={() => open(null)}
+          onSaved={(saved, created) => {
+            mark(saved._id);
+            res.refresh();
+            open(null);
+            if (created) setFilter("all");
+            toast(created ? `Reserva creada para ${saved.clientName} · ${fmt(saved.totalPrice)}` : "Reserva actualizada");
           }}
         />
-      </Modal>
-    </div>
+      )}
+      {detail && <ReservationDetail reservation={detail} actions={buttons(detail, true)} onClose={() => open(null)} />}
+      {cancelling && <CancelModal reservation={cancelling} onClose={() => open(null)} onConfirm={() => doCancel(cancelling)} />}
+    </Page>
   );
 }

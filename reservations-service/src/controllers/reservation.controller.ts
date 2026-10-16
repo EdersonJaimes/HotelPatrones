@@ -3,7 +3,11 @@ import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import { ReservationService } from "../services/reservation.service";
 
 function statusForError(message: string): number {
-  if (message === "Reserva no encontrada" || message === "Habitación no encontrada") {
+  if (
+    message === "Reserva no encontrada" ||
+    message === "Habitación no encontrada" ||
+    message === "Producto no encontrado"
+  ) {
     return 404;
   }
 
@@ -96,6 +100,44 @@ export class ReservationController {
       res.status(200).json(reservation);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error cancelando reserva";
+      res.status(statusForError(message)).json({ message });
+    }
+  };
+
+  activeByRoom = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const reservation = await this.reservationService.getActiveByRoomId(req.params.roomId as string);
+      res.status(200).json(reservation);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error obteniendo la reserva activa";
+      const status = message.includes("no tiene una reserva") ? 404 : 500;
+      res.status(status).json({ message });
+    }
+  };
+
+  quickCheckin = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const reservation = await this.reservationService.quickCheckin({
+        ...req.body,
+        createdBy: req.user?.id
+      });
+      res.status(201).json(reservation);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error registrando el check-in";
+      res.status(statusForError(message)).json({ message });
+    }
+  };
+
+  addConsumption = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const reservation = await this.reservationService.addConsumption(
+        req.params.id as string,
+        req.body,
+        req.headers.authorization as string
+      );
+      res.status(200).json(reservation);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error agregando el consumo";
       res.status(statusForError(message)).json({ message });
     }
   };

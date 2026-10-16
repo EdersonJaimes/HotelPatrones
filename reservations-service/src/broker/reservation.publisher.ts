@@ -38,3 +38,19 @@ export async function publishReservationCheckedOut(data: ReservationEventData): 
 export async function publishReservationCancelled(data: ReservationEventData): Promise<void> {
   broker.publish("reservation.cancelled", "RESERVATION_CANCELLED", data);
 }
+
+interface ReservationConsumptionEventData {
+  reservationId: string;
+  roomId: string;
+  roomNumber: number;
+  productId: string;
+  name: string;
+  quantity: number;
+  subtotal: number;
+}
+
+export async function publishReservationConsumptionAdded(
+  data: ReservationConsumptionEventData
+): Promise<void> {
+  broker.publish("reservation.consumption_added", "RESERVATION_CONSUMPTION_ADDED", data);
+}

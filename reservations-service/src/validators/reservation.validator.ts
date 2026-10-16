@@ -48,3 +48,32 @@ export const updateReservationValidator = [
 export const reservationIdValidator = [
   param("id").isMongoId().withMessage("id inválido")
 ];
+
+export const quickCheckinValidator = [
+  body("roomId")
+    .exists().withMessage("roomId es obligatorio")
+    .isString().withMessage("roomId debe ser un identificador válido"),
+
+  body("clientName")
+    .exists().withMessage("clientName es obligatorio")
+    .isString().isLength({ min: 2 }).withMessage("clientName debe tener al menos 2 caracteres"),
+
+  body("clientDocument").optional().isString(),
+  body("clientPhone").optional().isString(),
+
+  body("guests")
+    .optional()
+    .isInt({ min: 1 }).withMessage("guests debe ser un entero mayor a 0")
+];
+
+export const addConsumptionValidator = [
+  param("id").isMongoId().withMessage("id inválido"),
+
+  body("productId")
+    .exists().withMessage("productId es obligatorio")
+    .isString().withMessage("productId debe ser un identificador válido"),
+
+  body("quantity")
+    .exists().withMessage("quantity es obligatorio")
+    .isInt({ min: 1 }).withMessage("quantity debe ser un entero mayor a 0")
+];

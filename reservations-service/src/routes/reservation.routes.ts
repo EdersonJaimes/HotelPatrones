@@ -3,7 +3,9 @@ import { ReservationController } from "../controllers/reservation.controller";
 import { authenticateToken, requireRole } from "../middlewares/auth.middleware";
 import { validateRequest } from "../middlewares/validation.middleware";
 import {
+  addConsumptionValidator,
   createReservationValidator,
+  quickCheckinValidator,
   reservationIdValidator,
   updateReservationValidator
 } from "../validators/reservation.validator";
@@ -22,6 +24,27 @@ router.post(
   createReservationValidator,
   validateRequest,
   controller.create
+);
+
+// Recepción: buscar la reserva activa (checked_in) de una habitación, para
+// abrir su "cuenta". Va antes de "/:id" por el mismo motivo de siempre.
+router.get(
+  "/active/:roomId",
+  authenticateToken,
+  requireRole("admin", "recepcionista"),
+  controller.activeByRoom
+);
+
+// Recepción: click en la habitación -> crea + confirma + hace check-in en
+// un solo paso. Va antes de "/:id" por claridad, aunque no hay colisión real
+// de patrones (segmentos distintos).
+router.post(
+  "/quick-checkin",
+  authenticateToken,
+  requireRole("admin", "recepcionista"),
+  quickCheckinValidator,
+  validateRequest,
+  controller.quickCheckin
 );
 
 router.put(
@@ -50,6 +73,16 @@ router.patch(
   reservationIdValidator,
   validateRequest,
   controller.checkIn
+);
+
+// La "cuenta" de consumo: solo mientras la reserva está checked_in.
+router.post(
+  "/:id/consumptions",
+  authenticateToken,
+  requireRole("admin", "recepcionista"),
+  addConsumptionValidator,
+  validateRequest,
+  controller.addConsumption
 );
 
 router.patch(

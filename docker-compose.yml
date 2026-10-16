@@ -75,6 +75,7 @@ services:
       <<: *service-env
       PORT: 3002
       MONGO_URI: mongodb://mongo:27017/reservations_db
+      PRODUCTS_SERVICE_URL: http://products-service:3003
     depends_on: *service-deps
 
   products-service:

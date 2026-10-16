@@ -45,6 +45,10 @@ font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;co
 .sb.mini .txt{opacity:0;pointer-events:none}
 .sb.mini .nav-lbl::before{opacity:1}
 .sb.mini .collapse .ic{transform:rotate(180deg)}
+.sb .brand .collapse{margin-left:auto;flex:none}
+.sb.mini .brand{flex-direction:column;height:auto;gap:10px}
+.sb.mini .brand .txt{display:none}
+.sb.mini .brand .collapse{margin-left:0}
 .sb.mini .me .icon-btn{display:none}
 .main{flex:1 1 0;min-width:0;display:flex;flex-direction:column}
 .top{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:18px 32px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 84%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);min-height:89px}

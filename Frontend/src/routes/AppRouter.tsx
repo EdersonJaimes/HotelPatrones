@@ -11,7 +11,6 @@ import Products from "../modules/products/Products";
 import Reception from "../modules/reception/Reception";
 import Reservations from "../modules/reservations/Reservations";
 import Rooms from "../modules/rooms/Rooms";
-import Screens from "../modules/screens/Screens";
 import Users from "../modules/users/Users";
 
 const AppRouter = () => {
@@ -32,7 +31,6 @@ const AppRouter = () => {
             <Route path="/users" element={<Users />} />
             <Route path="/products" element={<Products />} />
             <Route path="/inventory" element={<Inventory />} />
-            <Route path="/screens" element={<Screens />} />
           </Route>
         </Route>
 

@@ -45,7 +45,7 @@ cambios de tiempo (ms) en el Panel: **Laboratorio · Facade vs. sin Facade** com
 contra 5 peticiones del navegador (y descarga de ~10 KB contra varios MB). Desde la terminal:
 `node docs/presentacion/medir-tiempos.js resultados.json`.
 
-El diseño de las 42 pantallas está implementado en el Frontend: la ruta `/screens` las lista y cada estado
+El diseño de las 42 pantallas está implementado en el Frontend: cada estado
 se abre con `?vista=` (ver `Frontend/README.md`).
 
 ## Servicios

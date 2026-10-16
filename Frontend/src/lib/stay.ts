@@ -17,5 +17,11 @@ export const ROOM_STATUS: Record<string, { label: string; tone: "ok" | "bal" | "
   maintenance: { label: "Mantenimiento", tone: "mute" },
 };
 
-export const ROOM_TYPE: Record<string, string> = { individual: "Individual", doble: "Doble", triple: "Triple", suite: "Suite" };
-export const ROOM_CAP: Record<string, number> = { individual: 1, doble: 2, triple: 3, suite: 4 };
+// Los tipos vienen de la base de datos y pueden ser otros (p. ej. "aire"): lo desconocido se muestra capitalizado, nunca undefined.
+const withFallback = <T,>(base: Record<string, T>, fallback: (k: string) => T) =>
+  new Proxy(base, { get: (t, k) => (typeof k === "string" ? (t[k] ?? fallback(k)) : undefined) });
+export const ROOM_TYPE: Record<string, string> = withFallback(
+  { individual: "Individual", doble: "Doble", triple: "Triple", suite: "Suite" },
+  (k) => k.charAt(0).toUpperCase() + k.slice(1)
+);
+export const ROOM_CAP: Record<string, number> = withFallback({ individual: 1, doble: 2, triple: 3, suite: 4 }, () => 2);

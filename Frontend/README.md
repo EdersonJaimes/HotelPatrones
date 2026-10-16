@@ -13,8 +13,7 @@ npm run build
 
 El diseño tiene 42 pantallas; en la app son 9 módulos y el resto son sus estados (modales, paneles
 laterales, cargando, error, validación). Cada estado se abre con `?vista=`, por ejemplo
-`/reception?vista=checkin` o `/inventory?vista=salida`. La ruta **`/screens`** (menú "42 pantallas")
-lista las 42 con su enlace.
+`/reception?vista=checkin` o `/inventory?vista=salida`.
 
 | Módulo        | Ruta            | Microservicio(s)                                   |
 |---------------|-----------------|-----------------------------------------------------|

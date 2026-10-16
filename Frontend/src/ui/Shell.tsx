@@ -46,7 +46,6 @@ const SECTIONS: NavSection[] = [
     ],
   },
   { label: "Equipo", items: [{ label: "Usuarios", path: "/users", icon: "shield", roles: ["admin"], short: "Equipo" }] },
-  { label: "Guía", items: [{ label: "42 pantallas", path: "/screens", icon: "grid", roles: ["admin"], short: "Pantallas" }] },
 ];
 
 const ROLE_LABEL: Record<string, string> = { admin: "Administrador", recepcionista: "Recepcionista" };
@@ -86,6 +85,9 @@ function Sidebar() {
           <div className="brand-name">Hotel Patrones</div>
           <div className="brand-sub">Gestión hotelera</div>
         </div>
+        <button className="icon-btn soft collapse" onClick={() => setMini((m) => !m)} aria-label={mini ? "Expandir menú" : "Contraer menú"} title={mini ? "Expandir menú" : "Contraer menú"}>
+          <Icon name="collapse" />
+        </button>
       </div>
       <nav className="nav" aria-label="Menú principal">
         {indicator >= 0 && (
@@ -109,10 +111,6 @@ function Sidebar() {
         ))}
       </nav>
       <div className="sb-foot">
-        <button className="nav-it collapse" onClick={() => setMini((m) => !m)} aria-label={mini ? "Expandir menú" : "Contraer menú"}>
-          <Icon name="collapse" />
-          <span className="txt">Contraer menú</span>
-        </button>
         <div className="me">
           <span className="av">{(name ?? "?").slice(0, 2).toUpperCase()}</span>
           <div className="me-txt txt">

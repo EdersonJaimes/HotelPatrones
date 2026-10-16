@@ -4,14 +4,11 @@ import { useAuth } from "../../context/AuthContext";
 import { errMsg } from "../../lib/format";
 import api from "../../services/api";
 import Icon from "../../ui/Icon";
-import { useTheme } from "../../ui/Theme";
 
 // Orden en que se "encienden" las ventanas del edificio de la ilustración.
 const WINDOW_ORDER = [2, 9, 5, 0, 11, 7, 3, 10, 1, 6, 8, 4];
-const SERVICES = ["auth", "rooms", "reservations", "stays", "products", "clients"];
 
 export default function Login() {
-  const { dark } = useTheme();
   const { login } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -49,7 +46,7 @@ export default function Login() {
   const bad = error ? " bad" : "";
 
   return (
-    <div className={"lg" + (dark ? " dark" : "")}>
+    <div className="lg">
       <section className="lg-art" aria-label="Hotel Patrones">
         <div className="lg-brand">
           <div className="lg-mark" aria-hidden="true">H</div>
@@ -66,11 +63,6 @@ export default function Login() {
             ))}
             <div className="lg-door" />
           </div>
-        </div>
-        <div className="lg-svcs" aria-label="Microservicios conectados">
-          {SERVICES.map((s) => (
-            <span key={s} className="lg-svc">{s}-service</span>
-          ))}
         </div>
       </section>
 

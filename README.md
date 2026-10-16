@@ -16,6 +16,10 @@ docker compose up --build
 | API Gateway    | http://localhost:3000                 |
 | RabbitMQ panel | http://localhost:15672 (guest/guest)  |
 
+> Si el login dice que el servicio no responde: el Frontend llama a `http://127.0.0.1:3000/api`, así que el
+> puerto 3000 debe ser del api-gateway (otra app suya en 3000 lo bloquea) y **todos** los servicios deben
+> estar arriba (auth-service necesita MongoDB y RabbitMQ; lo más simple es `docker compose up --build`).
+
 Usuario inicial: `admin` / `admin123` (rol admin). Desde "Usuarios" se crean los recepcionistas.
 
 Los valores por defecto (secreto JWT, admin inicial, umbral de bajo stock) se

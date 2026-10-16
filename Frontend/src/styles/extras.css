@@ -129,3 +129,10 @@ select.inp { appearance: none; padding-right: 36px; background-image: linear-gra
 
 /* los .kpis del diseño crecen dentro de .hero; fuera de él (Inventario) no deben estirarse a lo alto */
 .stack > .kpis { flex: none; }
+
+/* login: panel de la ilustración en el naranja de la marca (antes era casi negro) */
+.lg .lg-art { --art-ink: #fff; --art-muted: rgba(255, 255, 255, .88); --win: #a53a1c; background: linear-gradient(160deg, #e0562a 0%, #c9441a 55%, #b23c15 100%); }
+.lg.dark .lg-art { --win: #6e2410; background: linear-gradient(160deg, #b8421b 0%, #8f3012 60%, #6e2410 100%); }
+.lg .lg-art .lg-mark { background: #fff; color: #b23c15; box-shadow: 0 10px 24px -8px rgba(110, 36, 16, .55); }
+.lg .lg-art .lg-door { background: #fff1eb; }
+.lg .lg-art .lg-bld-body { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .32); }

@@ -11,7 +11,7 @@ declare module "axios" {
 // hacia cada microservicio. La URL se puede cambiar con VITE_API_URL (se fija
 // al compilar, ver Frontend/Dockerfile).
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:3000/api",
+  baseURL: import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3000/api",
 });
 
 api.interceptors.request.use((config) => {

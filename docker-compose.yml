@@ -139,7 +139,7 @@ services:
       context: ./Frontend
       args:
         # URL del gateway tal como la ve el navegador (no el nombre interno de Docker).
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+        VITE_API_URL: ${VITE_API_URL:-http://127.0.0.1:3000/api}
     restart: unless-stopped
     ports:
       - "5173:80"

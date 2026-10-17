@@ -1,25 +1,12 @@
 import api from "./api";
+import type { Client } from "../types/domain";
 
-// Listar
-export const getClients = async () => {
-  const res = await api.get("/clients");
-  return res.data;
-};
+export const getClients = async (): Promise<Client[]> => (await api.get("/clients")).data;
 
-// Crear
-export const createClient = async (data: unknown) => {
-  const res = await api.post("/clients", data);
-  return res.data;
-};
+export const createClient = async (data: { name: string; document: string; phone: string }): Promise<Client> =>
+  (await api.post("/clients", data)).data;
 
-// Actualizar
-export const updateClient = async (id: string, data: unknown) => {
-  const res = await api.put(`/clients/${id}`, data);
-  return res.data;
-};
+export const updateClient = async (id: string, data: Partial<Client>): Promise<Client> =>
+  (await api.put(`/clients/${id}`, data)).data;
 
-// Eliminar
-export const deleteClient = async (id: string) => {
-  const res = await api.delete(`/clients/${id}`);
-  return res.data;
-};
+export const deleteClient = async (id: string) => (await api.delete(`/clients/${id}`)).data;

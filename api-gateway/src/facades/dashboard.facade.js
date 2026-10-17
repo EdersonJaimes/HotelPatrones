@@ -1,45 +1,27 @@
-/**
- * PATRÓN FACADE (estructural) - aplicado como "BFF" (Backend For Frontend).
- *
- * Problema: Dashboard.tsx necesita UN solo objeto con estadísticas que en
- * realidad viven repartidas en 2 microservicios distintos (rooms-service y
- * products-service). Sin esta fachada, el frontend tendría que conocer la
- * existencia de ambos, llamarlos por separado y combinar los resultados él
- * mismo en el navegador.
- *
- * Solución: esta fachada expone un único método, getStats(token), que hace
- * el fan-out a los 3 subsistemas y entrega ya combinado lo que el frontend
- * necesita, con la MISMA forma que espera Dashboard.tsx:
- *   { clients, roomsOccupied, lowStock, topProducts }
- *
- * clients-service se agregó después de rooms-service y products-service: la
- * fachada solo necesitó un subsistema nuevo (ClientsClient) y una rama más
- * en Promise.allSettled. Ni getStats() cambió de firma ni Dashboard.tsx tuvo
- * que tocarse: esa es la ventaja de que el frontend dependa de la fachada y
- * no de los microservicios uno por uno.
- *
- * Resiliencia: usa Promise.allSettled en vez de Promise.all. Si uno de los
- * 2 microservicios está caído, el dashboard igual responde 200 con lo que sí
- * pudo obtener (en vez de que todo el dashboard falle por culpa de una sola
- * pieza). Los fallos quedan registrados en "warnings" (el frontend actual
- * ignora esa clave sin problema, pero ya queda lista para mostrarla).
- */
+
 class DashboardFacade {
-  constructor(roomsClient, productsClient, clientsClient, options = {}) {
+  constructor(roomsClient, productsClient, clientsClient, reservationsClient, options = {}) {
     this.roomsClient = roomsClient;
     this.productsClient = productsClient;
     this.clientsClient = clientsClient;
+    this.reservationsClient = reservationsClient;
     this.lowStockThreshold = options.lowStockThreshold ?? 5;
     this.topProductsLimit = options.topProductsLimit ?? 5;
+    this.lowStockListLimit = options.lowStockListLimit ?? 8;
+    this.arrivalsLimit = options.arrivalsLimit ?? 5;
   }
 
   async getStats(authorization) {
-    const [roomsResult, inventoryResult, topConsumedResult, clientsResult] = await Promise.allSettled([
-      this.roomsClient.fetchRooms(authorization),
-      this.productsClient.fetchInventory(authorization),
-      this.productsClient.fetchTopConsumed(authorization, this.topProductsLimit),
-      this.clientsClient.fetchClients(authorization)
-    ]);
+    // Cada servicio entrega ya el resumen (conteos y las pocas filas que se muestran), así que
+    // por la red interna viajan unos bytes y no las listas completas de clientes, inventario y reservas.
+    const [roomsResult, inventoryResult, topConsumedResult, clientsResult, reservationsResult] =
+      await Promise.allSettled([
+        this.roomsClient.fetchRooms(authorization),
+        this.productsClient.fetchSummary(authorization),
+        this.productsClient.fetchTopConsumed(authorization, this.topProductsLimit),
+        this.clientsClient.fetchCount(authorization),
+        this.reservationsClient.fetchSummary(authorization)
+      ]);
 
     const warnings = [];
 
@@ -48,11 +30,24 @@ class DashboardFacade {
         ? roomsResult.value.filter((room) => room.status === "occupied").length
         : (warnings.push(`rooms-service: ${roomsResult.reason.message}`), null);
 
-    const lowStock =
-      inventoryResult.status === "fulfilled"
-        ? inventoryResult.value.filter((row) => row.stock <= this.lowStockThreshold).length
-        : (warnings.push(`products-service (inventory): ${inventoryResult.reason.message}`), null);
+    // Versión "liviana" de las habitaciones: el panel solo necesita número y estado
+    // para pintar la fachada y los contadores, no el objeto completo de cada una.
+    const rooms =
+      roomsResult.status === "fulfilled"
+        ? roomsResult.value.map((room) => ({ _id: room._id, number: room.number, status: room.status }))
+        : [];
 
+    let lowStock = null;
+    let lowStockItems = [];
+
+    if (inventoryResult.status === "fulfilled") {
+      lowStock = inventoryResult.value.lowStock;
+      lowStockItems = inventoryResult.value.lowStockItems;
+    } else {
+      warnings.push(`products-service (inventory): ${inventoryResult.reason.message}`);
+    }
+
+    // El top ya trae el nombre del producto (viene del kardex).
     const topProducts =
       topConsumedResult.status === "fulfilled"
         ? topConsumedResult.value
@@ -60,14 +55,34 @@ class DashboardFacade {
 
     const clients =
       clientsResult.status === "fulfilled"
-        ? clientsResult.value.length
+        ? clientsResult.value.count
         : (warnings.push(`clients-service: ${clientsResult.reason.message}`), null);
+
+    let reservations = null;
+
+    if (reservationsResult.status === "fulfilled") {
+      reservations = {
+        active: reservationsResult.value.active,
+        arrivals: reservationsResult.value.arrivals.map((r) => ({
+          _id: r._id,
+          clientName: r.clientName,
+          roomNumber: r.roomNumber,
+          checkIn: r.checkIn,
+          status: r.status
+        }))
+      };
+    } else {
+      warnings.push(`reservations-service: ${reservationsResult.reason.message}`);
+    }
 
     return {
       clients,
       roomsOccupied,
       lowStock,
       topProducts,
+      rooms,
+      lowStockItems,
+      reservations,
       ...(warnings.length > 0 ? { warnings } : {})
     };
   }

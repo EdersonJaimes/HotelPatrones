@@ -1,0 +1,49 @@
+{
+  "n": 100,
+  "localhost": {
+    "conFacade": {
+      "media": 19.9,
+      "mediana": 18.8,
+      "p95": 32.1,
+      "min": 9.3,
+      "max": 43.8
+    },
+    "sinFacadeParalelo": {
+      "media": 26.9,
+      "mediana": 24.1,
+      "p95": 41.9,
+      "min": 14.2,
+      "max": 66.1
+    },
+    "sinFacadeSerie": {
+      "media": 61.4,
+      "mediana": 57.5,
+      "p95": 88.6,
+      "min": 32.8,
+      "max": 122.9
+    }
+  },
+  "latencia50ms": {
+    "conFacade": {
+      "media": 69.9,
+      "mediana": 68.4,
+      "p95": 85.6,
+      "min": 62.1,
+      "max": 97.4
+    },
+    "sinFacadeParalelo": {
+      "media": 75.1,
+      "mediana": 72.8,
+      "p95": 94.4,
+      "min": 63.3,
+      "max": 120.5
+    },
+    "sinFacadeSerie": {
+      "media": 276.2,
+      "mediana": 273.8,
+      "p95": 302.6,
+      "min": 246.6,
+      "max": 315
+    }
+  }
+}

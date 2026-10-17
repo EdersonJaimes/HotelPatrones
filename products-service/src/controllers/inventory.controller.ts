@@ -13,6 +13,15 @@ export class InventoryController {
     }
   };
 
+  summary = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 8, 50);
+      res.status(200).json(await this.inventoryService.getSummary(limit));
+    } catch (error) {
+      sendError(res, error, "Error obteniendo el resumen del inventario");
+    }
+  };
+
   add = async (req: Request, res: Response): Promise<void> => {
     try {
       const { productId, quantity, reason } = req.body;
@@ -36,6 +45,15 @@ export class InventoryController {
       res.status(200).json(await this.inventoryService.getMovements(req.params.productId as string));
     } catch (error) {
       sendError(res, error, "Error obteniendo los movimientos");
+    }
+  };
+
+  recentMovements = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const limit = Number(req.query.limit) || 100;
+      res.status(200).json(await this.inventoryService.getRecentMovements(limit));
+    } catch (error) {
+      sendError(res, error, "Error obteniendo el kardex");
     }
   };
 

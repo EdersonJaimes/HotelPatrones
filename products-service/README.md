@@ -59,6 +59,7 @@ El `stock` **no** se puede fijar por aquí: solo cambia con los endpoints de inv
 | POST   | /api/inventory/add                    | admin o recepcionista  |
 | POST   | /api/inventory/remove                 | admin o recepcionista  |
 | GET    | /api/inventory/movements/:productId   | admin o recepcionista  |
+| GET    | /api/inventory/movements?limit=100    | admin o recepcionista  |
 
 ```json
 { "productId": "<id>", "quantity": 10, "reason": "Compra a proveedor" }
@@ -67,6 +68,8 @@ El `stock` **no** se puede fijar por aquí: solo cambia con los endpoints de inv
 - `GET /api/inventory` → `[{ "_id", "product": { "_id", "name" }, "stock" }]`
 - `GET /api/inventory/movements/:productId` → kardex, más reciente primero:
   `[{ "_id", "product": { "_id", "name" }, "type": "IN" | "OUT", "quantity", "reason", "date" }]`
+- `GET /api/inventory/movements?limit=N` → kardex general (últimos N movimientos de todos los productos, máx. 500).
+- `GET /api/inventory/top-consumed?limit=N` admite hasta 5000 (la tabla de productos lo usa para "vendidos").
 - Descontar más de lo disponible responde `400` con `Stock insuficiente: disponible X, solicitado Y`.
 
 ## 4. Decisiones de diseño

@@ -49,6 +49,20 @@ export interface UpdateReservationData {
 const ACTIVE_STATUSES: ReservationStatus[] = ["pending", "confirmed", "checked_in"];
 
 export class ReservationRepository {
+  // Resumen para el Dashboard: reservas vigentes y próximas llegadas, sin traer todas.
+  async dashboardSummary(arrivalsLimit: number) {
+    const [active, arrivals] = await Promise.all([
+      Reservation.countDocuments({ status: { $in: ["pending", "confirmed", "checked_in"] } }),
+      Reservation.find({ status: { $in: ["pending", "confirmed"] }, checkIn: { $gte: new Date() } })
+        .sort({ checkIn: 1 })
+        .limit(arrivalsLimit)
+        .select("clientName roomNumber checkIn status")
+        .lean()
+    ]);
+
+    return { active, arrivals };
+  }
+
   async findAll(): Promise<IReservation[]> {
     return Reservation.find().sort({ checkIn: 1 });
   }

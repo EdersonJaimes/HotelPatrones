@@ -43,6 +43,16 @@ export class InventoryService {
     return products.map(toInventoryRow);
   }
 
+  async getSummary(limit: number) {
+    const { count, items } = await this.productRepository.lowStockSummary(lowStockThreshold(), limit);
+
+    return {
+      threshold: lowStockThreshold(),
+      lowStock: count,
+      lowStockItems: items.map((p) => ({ _id: String(p._id), name: p.name, stock: p.stock }))
+    };
+  }
+
   async addStock(productId: string, quantity: number, reason: string) {
     const product = await this.productRepository.increaseStock(productId, quantity);
 
@@ -106,6 +116,11 @@ export class InventoryService {
 
   async getMovements(productId: string) {
     const movements = await this.movementRepository.findByProductId(productId);
+    return movements.map(toMovementRow);
+  }
+
+  async getRecentMovements(limit: number) {
+    const movements = await this.movementRepository.findRecent(limit);
     return movements.map(toMovementRow);
   }
 

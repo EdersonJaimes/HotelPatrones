@@ -8,10 +8,12 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "amqplib": "^0.10.9",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "http-proxy-middleware": "^2.0.9"
+    "http-proxy-middleware": "^2.0.9",
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

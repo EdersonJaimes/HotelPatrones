@@ -16,7 +16,7 @@ Microservicio local de autenticación. Implementa:
 
 ## 1. Configuración
 
-Copia `.env.example` como `.env` y revisa los valores.
+Copia `.env.example` como `.env` y revisa los valores (`PORT=3010`: el 3000 es del api-gateway).
 
 La conexión por defecto es:
 
@@ -40,7 +40,7 @@ npm run dev
 
 El servicio queda en:
 
-`http://localhost:3000`
+`http://localhost:3010` (el 3000 lo usa el api-gateway)
 
 ## 4. Usuario administrador inicial
 

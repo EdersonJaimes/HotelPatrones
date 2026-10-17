@@ -7,6 +7,10 @@ const { DashboardFacade } = require("./src/facades/dashboard.facade");
 const { RoomsClient } = require("./src/facades/subsystem/rooms.client");
 const { ProductsClient } = require("./src/facades/subsystem/products.client");
 const { ClientsClient } = require("./src/facades/subsystem/clients.client");
+const { ReservationsClient } = require("./src/facades/subsystem/reservations.client");
+const jwt = require("jsonwebtoken");
+const eventMonitor = require("./src/events/event.monitor");
+const demoPublisher = require("./src/events/demo.publisher");
 
 const app = express();
 
@@ -24,6 +28,7 @@ const ROOMS_URL = process.env.ROOMS_SERVICE_URL || "http://localhost:3001";
 const RESERVATIONS_URL = process.env.RESERVATIONS_SERVICE_URL || "http://localhost:3002";
 const PRODUCTS_URL = process.env.PRODUCTS_SERVICE_URL || "http://localhost:3003";
 const CLIENTS_URL = process.env.CLIENTS_SERVICE_URL || "http://localhost:3004";
+const STAYS_URL = process.env.STAYS_SERVICE_URL || "http://localhost:3005";
 
 function proxyTo(target, label) {
   return createProxyMiddleware({
@@ -45,16 +50,18 @@ app.use("/api/reservations", proxyTo(RESERVATIONS_URL, "reservations-service"));
 app.use("/api/products", proxyTo(PRODUCTS_URL, "products-service"));
 app.use("/api/inventory", proxyTo(PRODUCTS_URL, "products-service"));
 app.use("/api/clients", proxyTo(CLIENTS_URL, "clients-service"));
+app.use("/api/stays", proxyTo(STAYS_URL, "stays-service"));
 
 const dashboardFacade = new DashboardFacade(
   new RoomsClient(ROOMS_URL),
   new ProductsClient(PRODUCTS_URL),
   new ClientsClient(CLIENTS_URL),
+  new ReservationsClient(RESERVATIONS_URL),
   { lowStockThreshold: Number(process.env.LOW_STOCK_THRESHOLD) || 5 }
 );
 
 // Único endpoint del gateway que NO es un simple proxy: agrega datos de
-// rooms-service y products-service en una sola respuesta (patrón Facade / BFF).
+// rooms, products, clients y reservations-service en una sola respuesta (patrón Facade / BFF).
 app.get("/api/dashboard/stats", async (req, res) => {
   const authorization = req.headers.authorization;
 
@@ -72,11 +79,46 @@ app.get("/api/dashboard/stats", async (req, res) => {
   }
 });
 
+// ---- Facade del broker: eventos en vivo (solo admin) ----
+// Los usa la vista "Patrones" del Frontend. No son un proxy: el gateway escucha el exchange de RabbitMQ.
+function requireAdmin(req, res, next) {
+  const token = (req.headers.authorization || "").replace(/^Bearer /, "");
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET || "hotel_auth_secret_change_me");
+    if (payload.role !== "admin") {
+      res.status(403).json({ message: "Solo el administrador puede ver los eventos" });
+      return;
+    }
+    next();
+  } catch {
+    res.status(401).json({ message: "Token inválido o vencido" });
+  }
+}
+
+app.get("/api/events", requireAdmin, (req, res) => {
+  res.status(200).json(eventMonitor.list(Number(req.query.after) || 0));
+});
+
+app.post("/api/events/demo", requireAdmin, async (req, res) => {
+  const mode = req.query.mode === "directo" ? "directo" : "facade";
+  const data = { mode, sentAt: new Date().toISOString() };
+
+  try {
+    const result = mode === "facade" ? demoPublisher.withFacade(data) : await demoPublisher.withoutFacade(data);
+    res.status(200).json({ mode, ...result });
+  } catch (error) {
+    res.status(503).json({ message: `No se pudo publicar en RabbitMQ: ${error.message}` });
+  }
+});
+
 app.get("/health", (_req, res) => {
   res.status(200).json({ service: "api-gateway", status: "UP" });
 });
 
 const PORT = Number(process.env.PORT || 3000);
+
+eventMonitor.start();
 
 const server = app.listen(PORT, () => {
   const actualPort = server.address().port;
@@ -86,6 +128,7 @@ const server = app.listen(PORT, () => {
   console.log(`[GATEWAY] /api/reservations -> ${RESERVATIONS_URL}`);
   console.log(`[GATEWAY] /api/products     -> ${PRODUCTS_URL}`);
   console.log(`[GATEWAY] /api/clients      -> ${CLIENTS_URL}`);
+  console.log(`[GATEWAY] /api/stays        -> ${STAYS_URL}`);
 });
 
 module.exports = server;

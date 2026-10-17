@@ -7,6 +7,18 @@ class ClientsClient {
     this.baseUrl = baseUrl;
   }
 
+  async fetchCount(authorization) {
+    const res = await fetch(`${this.baseUrl}/api/clients/count`, {
+      headers: { authorization }
+    });
+
+    if (!res.ok) {
+      throw new Error(`clients-service respondió ${res.status}`);
+    }
+
+    return res.json();
+  }
+
   async fetchClients(authorization) {
     const res = await fetch(`${this.baseUrl}/api/clients`, {
       headers: { authorization }

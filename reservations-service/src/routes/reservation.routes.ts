@@ -15,6 +15,8 @@ const controller = new ReservationController();
 
 // Listado, detalle, alta y edición: admin y recepcionista gestionan reservas día a día.
 router.get("/", authenticateToken, controller.list);
+// Resumen liviano para el Dashboard (lo usa la Facade del gateway); va antes de "/:id".
+router.get("/summary", authenticateToken, controller.summary);
 router.get("/:id", authenticateToken, reservationIdValidator, validateRequest, controller.getById);
 
 router.post(

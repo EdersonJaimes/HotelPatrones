@@ -2,53 +2,38 @@
 
 Punto de entrada único (`http://localhost:3000`) que reparte las peticiones
 del frontend hacia cada microservicio interno según el prefijo de la ruta.
-El frontend NO cambia nada: sigue apuntando a `http://localhost:3000/api`.
 
-| Ruta del frontend | Se reenvía a           |
-|--------------------|-------------------------|
-| `/api/auth/*`       | auth-service (puerto 3010) |
-| `/api/rooms/*`      | rooms-service (puerto 3001) |
-| `/api/stays/*`      | reservations-service (puerto 3002) |
-| `/api/products/*`   | products-service (puerto 3003, futuro) |
+| Ruta del frontend        | Se reenvía a                       |
+|---------------------------|-------------------------------------|
+| `/api/auth/*`             | auth-service (3010)                 |
+| `/api/rooms/*`            | rooms-service (3001)                |
+| `/api/reservations/*`     | reservations-service (3002)         |
+| `/api/products/*`         | products-service (3003)             |
+| `/api/inventory/*`        | products-service (3003)             |
+| `/api/clients/*`          | clients-service (3004)              |
+| `/api/stays/*`            | stays-service (3005)                |
+| `GET /api/dashboard/stats`| **Facade** (no es proxy, ver abajo) |
 
-## ⚠️ Antes de usar el gateway
+## Dashboard: patrón Facade (BFF)
 
-`auth-service` debe dejar de usar el puerto 3000 (porque ahora lo usa el
-gateway). Cambia en `auth-service/.env`:
+`GET /api/dashboard/stats` no se reenvía: `src/facades/dashboard.facade.js`
+consulta en paralelo rooms, products, clients y reservations (cada uno con su cliente en
+`src/facades/subsystem/`) y devuelve `{ clients, roomsOccupied, lowStock, topProducts, rooms,
+lowStockItems, reservations }` (todo lo que pinta el Panel del Frontend).
+Usa `Promise.allSettled`: si un servicio está caído, responde con lo que sí pudo
+obtener y deja el motivo en `warnings`.
 
-```
-PORT=3010
-```
-
-`rooms-service` ya usa 3001 por defecto, no hay que tocarlo.
-
-## 1. Configuración
+## Configuración
 
 ```bash
 copy .env.example .env
-```
-
-## 2. Instalar dependencias
-
-```bash
 npm install
-```
-
-## 3. Ejecutar
-
-```bash
 npm run dev
 ```
 
-## 4. Orden recomendado para levantar todo
+`auth-service` debe usar `PORT=3010` (el 3000 es del gateway).
 
-1. `docker compose up -d` (infra: Mongo + RabbitMQ)
-2. `auth-service` → `npm run dev` (ahora en 3010)
-3. `rooms-service` → `npm run dev` (3001)
-4. `reservations-service` → `npm run dev` (3002, cuando esté listo)
-5. `api-gateway` → `npm run dev` (3000, el que ve el frontend)
-6. Frontend → `npm run dev` (sin cambios)
+## Con Docker
 
-Si algún microservicio interno no está corriendo, el gateway responde
-`502` con un mensaje claro indicando cuál servicio falta, en vez de
-colgarse sin explicación.
+Desde la raíz del repo: `docker compose up --build`. El gateway recibe las URLs
+internas por variables de entorno (`http://auth-service:3010`, etc.).

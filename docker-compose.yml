@@ -1,0 +1,157 @@
+# Todo el sistema con un solo comando:
+#   docker compose up --build
+#
+# Frontend:  http://localhost:5173
+# Gateway:   http://localhost:3000   (único microservicio expuesto al navegador)
+# RabbitMQ:  http://localhost:15672  (guest / guest)
+#
+# Solo infraestructura (para desarrollar los servicios con npm run dev):
+#   docker compose up -d mongo rabbitmq
+
+x-service-env: &service-env
+  JWT_SECRET: ${JWT_SECRET:-hotel_auth_secret_change_me}
+  RABBITMQ_URL: amqp://rabbitmq:5672
+  RABBITMQ_EXCHANGE: hotel_events
+
+x-service-deps: &service-deps
+  mongo:
+    condition: service_healthy
+  rabbitmq:
+    condition: service_healthy
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    ports:
+      - "5672:5672"   # protocolo AMQP (lo usan los microservicios)
+      - "15672:15672" # panel web de administración
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
+  auth-service:
+    build: ./auth-service
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      PORT: 3010
+      MONGO_URI: mongodb://mongo:27017/auth_db
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrador}
+    depends_on: *service-deps
+
+  rooms-service:
+    build: ./rooms-service
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      PORT: 3001
+      MONGO_URI: mongodb://mongo:27017/rooms_db
+    depends_on: *service-deps
+
+  reservations-service:
+    build: ./reservations-service
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      PORT: 3002
+      MONGO_URI: mongodb://mongo:27017/reservations_db
+      PRODUCTS_SERVICE_URL: http://products-service:3003
+    depends_on: *service-deps
+
+  products-service:
+    build: ./products-service
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      PORT: 3003
+      MONGO_URI: mongodb://mongo:27017/products_db
+      LOW_STOCK_THRESHOLD: ${LOW_STOCK_THRESHOLD:-5}
+    depends_on: *service-deps
+
+  clients-service:
+    build: ./clients-service
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      PORT: 3004
+      MONGO_URI: mongodb://mongo:27017/clients_db
+    depends_on: *service-deps
+
+  stays-service:
+    build: ./stays-service
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+      PORT: 3005
+      MONGO_URI: mongodb://mongo:27017/stays_db
+      ROOMS_SERVICE_URL: http://rooms-service:3001
+      PRODUCTS_SERVICE_URL: http://products-service:3003
+    depends_on:
+      <<: *service-deps
+      rooms-service:
+        condition: service_started
+      products-service:
+        condition: service_started
+
+  api-gateway:
+    build: ./api-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3010
+      ROOMS_SERVICE_URL: http://rooms-service:3001
+      RESERVATIONS_SERVICE_URL: http://reservations-service:3002
+      PRODUCTS_SERVICE_URL: http://products-service:3003
+      CLIENTS_SERVICE_URL: http://clients-service:3004
+      STAYS_SERVICE_URL: http://stays-service:3005
+      LOW_STOCK_THRESHOLD: ${LOW_STOCK_THRESHOLD:-5}
+      # monitor de eventos (vista Patrones): escucha el exchange y valida que quien lo consulta sea admin
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      RABBITMQ_EXCHANGE: hotel_events
+      JWT_SECRET: ${JWT_SECRET:-hotel_auth_secret_change_me}
+    depends_on:
+      - rabbitmq
+      - auth-service
+      - rooms-service
+      - reservations-service
+      - products-service
+      - clients-service
+      - stays-service
+
+  frontend:
+    build:
+      context: ./Frontend
+      args:
+        # URL del gateway tal como la ve el navegador (no el nombre interno de Docker).
+        VITE_API_URL: ${VITE_API_URL:-http://127.0.0.1:3000/api}
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - api-gateway
+
+volumes:
+  mongo_data:
+  rabbitmq_data:

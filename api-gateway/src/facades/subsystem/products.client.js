@@ -7,6 +7,18 @@ class ProductsClient {
     this.baseUrl = baseUrl;
   }
 
+  async fetchSummary(authorization) {
+    const res = await fetch(`${this.baseUrl}/api/inventory/summary?limit=8`, {
+      headers: { authorization }
+    });
+
+    if (!res.ok) {
+      throw new Error(`products-service (summary) respondió ${res.status}`);
+    }
+
+    return res.json();
+  }
+
   async fetchInventory(authorization) {
     const res = await fetch(`${this.baseUrl}/api/inventory`, {
       headers: { authorization }

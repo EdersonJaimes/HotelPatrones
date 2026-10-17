@@ -127,7 +127,12 @@ services:
       CLIENTS_SERVICE_URL: http://clients-service:3004
       STAYS_SERVICE_URL: http://stays-service:3005
       LOW_STOCK_THRESHOLD: ${LOW_STOCK_THRESHOLD:-5}
+      # monitor de eventos (vista Patrones): escucha el exchange y valida que quien lo consulta sea admin
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      RABBITMQ_EXCHANGE: hotel_events
+      JWT_SECRET: ${JWT_SECRET:-hotel_auth_secret_change_me}
     depends_on:
+      - rabbitmq
       - auth-service
       - rooms-service
       - reservations-service

@@ -165,3 +165,15 @@ select.inp { appearance: none; padding-right: 36px; background-image: linear-gra
 .json-box pre { margin: 10px 0 0; padding: 14px; max-height: 320px; overflow: auto; font-size: 12px; line-height: 18px; background: var(--surface-2); border-radius: 12px; }
 .fw-cmp { display: flex; flex-direction: column; gap: 8px; }
 .fw-cmp .bench-row { grid-template-columns: minmax(110px, 160px) minmax(0, 1fr) 92px; }
+
+/* Facade del broker */
+.code { margin: 0; padding: 12px 14px; font-size: 12px; line-height: 18px; background: var(--surface-2); border-radius: 12px; overflow-x: auto; white-space: pre; color: var(--ink); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.steps { display: flex; flex-direction: column; gap: 8px; }
+.step-row { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(0, 1fr) 80px; column-gap: 14px; align-items: center; }
+.step-row code { font-size: 12px; overflow-wrap: anywhere; }
+.step-row .val { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+.nowrap { white-space: nowrap; }
+@keyframes rowNew { from { background: color-mix(in srgb, var(--ok) 22%, transparent); } to { background: transparent; } }
+.row-new td { animation: rowNew 2.4s ease-out both; }
+@media (max-width: 760px) { .step-row { grid-template-columns: 1fr; row-gap: 4px; } .step-row .val { text-align: left; } }

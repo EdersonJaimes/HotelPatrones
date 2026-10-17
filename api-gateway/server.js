@@ -8,6 +8,9 @@ const { RoomsClient } = require("./src/facades/subsystem/rooms.client");
 const { ProductsClient } = require("./src/facades/subsystem/products.client");
 const { ClientsClient } = require("./src/facades/subsystem/clients.client");
 const { ReservationsClient } = require("./src/facades/subsystem/reservations.client");
+const jwt = require("jsonwebtoken");
+const eventMonitor = require("./src/events/event.monitor");
+const demoPublisher = require("./src/events/demo.publisher");
 
 const app = express();
 
@@ -76,11 +79,46 @@ app.get("/api/dashboard/stats", async (req, res) => {
   }
 });
 
+// ---- Facade del broker: eventos en vivo (solo admin) ----
+// Los usa la vista "Patrones" del Frontend. No son un proxy: el gateway escucha el exchange de RabbitMQ.
+function requireAdmin(req, res, next) {
+  const token = (req.headers.authorization || "").replace(/^Bearer /, "");
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET || "hotel_auth_secret_change_me");
+    if (payload.role !== "admin") {
+      res.status(403).json({ message: "Solo el administrador puede ver los eventos" });
+      return;
+    }
+    next();
+  } catch {
+    res.status(401).json({ message: "Token inválido o vencido" });
+  }
+}
+
+app.get("/api/events", requireAdmin, (req, res) => {
+  res.status(200).json(eventMonitor.list(Number(req.query.after) || 0));
+});
+
+app.post("/api/events/demo", requireAdmin, async (req, res) => {
+  const mode = req.query.mode === "directo" ? "directo" : "facade";
+  const data = { mode, sentAt: new Date().toISOString() };
+
+  try {
+    const result = mode === "facade" ? demoPublisher.withFacade(data) : await demoPublisher.withoutFacade(data);
+    res.status(200).json({ mode, ...result });
+  } catch (error) {
+    res.status(503).json({ message: `No se pudo publicar en RabbitMQ: ${error.message}` });
+  }
+});
+
 app.get("/health", (_req, res) => {
   res.status(200).json({ service: "api-gateway", status: "UP" });
 });
 
 const PORT = Number(process.env.PORT || 3000);
+
+eventMonitor.start();
 
 const server = app.listen(PORT, () => {
   const actualPort = server.address().port;

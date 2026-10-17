@@ -12,13 +12,15 @@ class DashboardFacade {
   }
 
   async getStats(authorization) {
+    // Cada servicio entrega ya el resumen (conteos y las pocas filas que se muestran), así que
+    // por la red interna viajan unos bytes y no las listas completas de clientes, inventario y reservas.
     const [roomsResult, inventoryResult, topConsumedResult, clientsResult, reservationsResult] =
       await Promise.allSettled([
         this.roomsClient.fetchRooms(authorization),
-        this.productsClient.fetchInventory(authorization),
+        this.productsClient.fetchSummary(authorization),
         this.productsClient.fetchTopConsumed(authorization, this.topProductsLimit),
-        this.clientsClient.fetchClients(authorization),
-        this.reservationsClient.fetchReservations(authorization)
+        this.clientsClient.fetchCount(authorization),
+        this.reservationsClient.fetchSummary(authorization)
       ]);
 
     const warnings = [];
@@ -35,66 +37,39 @@ class DashboardFacade {
         ? roomsResult.value.map((room) => ({ _id: room._id, number: room.number, status: room.status }))
         : [];
 
-    const lowRows =
-      inventoryResult.status === "fulfilled"
-        ? inventoryResult.value.filter((row) => row.stock <= this.lowStockThreshold)
-        : null;
+    let lowStock = null;
+    let lowStockItems = [];
 
-    if (lowRows === null) {
+    if (inventoryResult.status === "fulfilled") {
+      lowStock = inventoryResult.value.lowStock;
+      lowStockItems = inventoryResult.value.lowStockItems;
+    } else {
       warnings.push(`products-service (inventory): ${inventoryResult.reason.message}`);
     }
 
-    const lowStock = lowRows === null ? null : lowRows.length;
-
-    const lowStockItems =
-      lowRows === null
-        ? []
-        : lowRows
-            .slice()
-            .sort((a, b) => a.stock - b.stock)
-            .slice(0, this.lowStockListLimit)
-            .map((row) => ({ _id: String(row.product._id), name: row.product.name, stock: row.stock }));
-
-    // El top solo trae ids: los nombres salen del inventario (si el producto
-    // fue eliminado o el inventario falló, se deja el id como nombre).
-    const names = new Map(
-      inventoryResult.status === "fulfilled"
-        ? inventoryResult.value.map((row) => [String(row.product._id), row.product.name])
-        : []
-    );
-
+    // El top ya trae el nombre del producto (viene del kardex).
     const topProducts =
       topConsumedResult.status === "fulfilled"
-        ? topConsumedResult.value.map((item) => ({
-            ...item,
-            name: names.get(String(item._id)) ?? String(item._id)
-          }))
+        ? topConsumedResult.value
         : (warnings.push(`products-service (top-consumed): ${topConsumedResult.reason.message}`), []);
 
     const clients =
       clientsResult.status === "fulfilled"
-        ? clientsResult.value.length
+        ? clientsResult.value.count
         : (warnings.push(`clients-service: ${clientsResult.reason.message}`), null);
 
     let reservations = null;
 
     if (reservationsResult.status === "fulfilled") {
-      const now = Date.now();
-      const all = reservationsResult.value;
-
       reservations = {
-        active: all.filter((r) => ["pending", "confirmed", "checked_in"].includes(r.status)).length,
-        arrivals: all
-          .filter((r) => ["pending", "confirmed"].includes(r.status) && new Date(r.checkIn).getTime() >= now)
-          .sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())
-          .slice(0, this.arrivalsLimit)
-          .map((r) => ({
-            _id: r._id,
-            clientName: r.clientName,
-            roomNumber: r.roomNumber,
-            checkIn: r.checkIn,
-            status: r.status
-          }))
+        active: reservationsResult.value.active,
+        arrivals: reservationsResult.value.arrivals.map((r) => ({
+          _id: r._id,
+          clientName: r.clientName,
+          roomNumber: r.roomNumber,
+          checkIn: r.checkIn,
+          status: r.status
+        }))
       };
     } else {
       warnings.push(`reservations-service: ${reservationsResult.reason.message}`);

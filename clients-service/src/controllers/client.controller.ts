@@ -21,6 +21,14 @@ export class ClientController {
     }
   };
 
+  count = async (_req: Request, res: Response): Promise<void> => {
+    try {
+      res.status(200).json(await this.clientService.countClients());
+    } catch (error) {
+      sendError(res, error, "Error contando los clientes");
+    }
+  };
+
   create = async (req: Request, res: Response): Promise<void> => {
     try {
       const { name, document, phone } = req.body;

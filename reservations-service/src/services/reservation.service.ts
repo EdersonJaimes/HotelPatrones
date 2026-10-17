@@ -47,6 +47,10 @@ export class ReservationService {
   private readonly roomSnapshotRepository = new RoomSnapshotRepository();
   private readonly productsClient = new ProductsClient();
 
+  async dashboardSummary(arrivalsLimit: number) {
+    return this.reservationRepository.dashboardSummary(arrivalsLimit);
+  }
+
   async listReservations() {
     return this.reservationRepository.findAll();
   }

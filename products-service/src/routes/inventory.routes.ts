@@ -14,6 +14,9 @@ const controller = new InventoryController();
 
 router.get("/", authenticateToken, controller.list);
 
+// Resumen liviano para el Dashboard (lo usa la Facade del gateway).
+router.get("/summary", authenticateToken, controller.summary);
+
 // Va antes de "/movements/:productId" solo por orden de lectura; no hay
 // conflicto real porque los segmentos literales son distintos.
 router.get(

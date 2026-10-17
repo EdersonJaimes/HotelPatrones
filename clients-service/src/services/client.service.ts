@@ -26,6 +26,10 @@ function isDuplicateKeyError(error: unknown): boolean {
 export class ClientService {
   private readonly clientRepository = new ClientRepository();
 
+  async countClients() {
+    return { count: await this.clientRepository.count() };
+  }
+
   async listClients() {
     return this.clientRepository.findAll();
   }

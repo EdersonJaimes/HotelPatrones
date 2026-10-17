@@ -13,6 +13,8 @@ const controller = new ClientController();
 
 // Consulta y registro del día a día: admin o recepcionista.
 router.get("/", authenticateToken, controller.list);
+// Solo el total (lo usa la Facade del gateway); va antes de "/:id".
+router.get("/count", authenticateToken, controller.count);
 router.get("/:id", authenticateToken, clientIdValidator, validateRequest, controller.getById);
 
 router.post(

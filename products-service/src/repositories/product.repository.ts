@@ -15,6 +15,17 @@ export interface UpdateProductData {
 }
 
 export class ProductRepository {
+  // Resumen de bajo stock calculado en la base de datos: el Dashboard solo necesita
+  // cuántos hay y los más urgentes, no los 1 200 productos.
+  async lowStockSummary(threshold: number, limit: number) {
+    const [count, items] = await Promise.all([
+      Product.countDocuments({ stock: { $lte: threshold } }),
+      Product.find({ stock: { $lte: threshold } }).sort({ stock: 1, name: 1 }).limit(limit).select("name stock").lean()
+    ]);
+
+    return { count, items };
+  }
+
   async findAll(): Promise<IProduct[]> {
     return Product.find().collation({ locale: "es" }).sort({ name: 1 });
   }

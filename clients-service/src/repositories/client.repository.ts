@@ -13,6 +13,10 @@ export interface UpdateClientData {
 }
 
 export class ClientRepository {
+  async count(): Promise<number> {
+    return Client.countDocuments();
+  }
+
   async findAll(): Promise<IClient[]> {
     return Client.find().sort({ name: 1 });
   }

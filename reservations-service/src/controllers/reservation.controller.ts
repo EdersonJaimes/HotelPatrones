@@ -31,6 +31,16 @@ export class ReservationController {
     }
   };
 
+  summary = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const limit = Math.min(Number(req.query.arrivals) || 5, 50);
+      res.status(200).json(await this.reservationService.dashboardSummary(limit));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error obteniendo el resumen";
+      res.status(500).json({ message });
+    }
+  };
+
   getById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const reservation = await this.reservationService.getReservationById(req.params.id as string);

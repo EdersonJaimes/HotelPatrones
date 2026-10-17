@@ -116,7 +116,7 @@ function RoomForm({
                       >
                         <span className="strong">{ROOM_TYPE[t]}</span>
                         <span className="amt">{p ? fmt(p.price) : "—"}</span>
-                        <span className="muted sm-text">{plural(p?.capacity ?? ROOM_CAP[t], "persona", "personas")} · {p?.amenities.length ?? 0} comodidades</span>
+                        <span className="muted sm-text">{plural(p?.capacity ?? ROOM_CAP[t], "persona", "personas")} · {p?.amenities?.length ?? 0} comodidades</span>
                       </button>
                     );
                   })}
@@ -294,7 +294,7 @@ export default function Rooms() {
   };
 
   const base = all.filter((r) => filter === "all" || r.status === filter);
-  const rows = base.filter((r) => !query || `${r.number} ${ROOM_TYPE[r.type]} ${r.amenities.join(" ")}`.toLowerCase().includes(query));
+  const rows = base.filter((r) => !query || `${r.number} ${ROOM_TYPE[r.type]} ${(r.amenities ?? []).join(" ")}`.toLowerCase().includes(query));
   const paging = usePaging(rows, `${filter}|${query}`);
   const countOf = (s: Filter) => (s === "all" ? all.length : all.filter((r) => r.status === s).length);
   const nextNumber = all.length ? Math.max(...all.map((r) => r.number)) + 1 : 101;
@@ -302,7 +302,7 @@ export default function Rooms() {
   const columns: Column<Room>[] = [
     { header: "Habitación", width: "120px", cell: (r) => <span className="amt">Hab. {r.number}</span> },
     { header: "Tipo", width: "110px", cell: (r) => ROOM_TYPE[r.type] },
-    { header: "Capacidad", width: "120px", cell: (r) => plural(r.capacity, "persona", "personas") },
+    { header: "Capacidad", width: "120px", cell: (r) => plural(r.capacity ?? ROOM_CAP[r.type], "persona", "personas") },
     { header: "Tarifa / noche", width: "140px", num: true, cell: (r) => <span className="amt">{fmt(r.price)}</span> },
     {
       header: "Estado",
@@ -316,7 +316,7 @@ export default function Rooms() {
     {
       header: "Comodidades",
       width: "minmax(220px, 1fr)",
-      cell: (r) => <div className="chips">{r.amenities.slice(0, 4).map((a) => <span key={a} className="chip-s">{a}</span>)}{r.amenities.length > 4 && <span className="chip-s">+{r.amenities.length - 4}</span>}</div>,
+      cell: (r) => <div className="chips">{(r.amenities ?? []).slice(0, 4).map((a) => <span key={a} className="chip-s">{a}</span>)}{(r.amenities?.length ?? 0) > 4 && <span className="chip-s">+{r.amenities.length - 4}</span>}</div>,
     },
     {
       header: "Acciones",

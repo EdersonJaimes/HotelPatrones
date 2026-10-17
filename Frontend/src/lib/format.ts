@@ -44,7 +44,7 @@ export function nightsBetween(checkIn: string, checkOut: string): number {
   return Math.ceil(ms / 86_400_000);
 }
 
-export const plural = (n: number, one: string, many: string) => `${n.toLocaleString("es-CO")} ${n === 1 ? one : many}`;
+export const plural = (n: number | null | undefined, one: string, many: string) => `${(n ?? 0).toLocaleString("es-CO")} ${n === 1 ? one : many}`;
 
 export function kb(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

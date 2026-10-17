@@ -33,5 +33,5 @@ export const topConsumedValidator = [
 export const recentMovementsValidator = [
   query("limit")
     .optional()
-    .isInt({ min: 1, max: 500 }).withMessage("limit debe ser un entero entre 1 y 500")
+    .isInt({ min: 1, max: 20000 }).withMessage("limit debe ser un entero entre 1 y 20000")
 ];

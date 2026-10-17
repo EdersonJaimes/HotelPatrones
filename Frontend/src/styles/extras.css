@@ -152,3 +152,16 @@ select.inp { appearance: none; padding-right: 36px; background-image: linear-gra
 .mode-card.is-direct.on { border-color: var(--brand); background: var(--brand-tint); }
 .mode-card.is-direct.on .mc-tag { background: var(--brand-strong); color: #fff; }
 @media (max-width: 760px) { .mode-cards { grid-template-columns: 1fr; } }
+
+/* vista Patrones: tablas simples y visor JSON */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+.tbl-simple { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl-simple th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-muted); padding: 10px 14px; background: var(--surface-2); white-space: nowrap; }
+.tbl-simple td { padding: 10px 14px; border-top: 1px solid var(--line); }
+.tbl-simple .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbl-simple code { font-size: 12px; }
+.tbl-total td { background: var(--surface-2); }
+.json-box summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+.json-box pre { margin: 10px 0 0; padding: 14px; max-height: 320px; overflow: auto; font-size: 12px; line-height: 18px; background: var(--surface-2); border-radius: 12px; }
+.fw-cmp { display: flex; flex-direction: column; gap: 8px; }
+.fw-cmp .bench-row { grid-template-columns: minmax(110px, 160px) minmax(0, 1fr) 92px; }

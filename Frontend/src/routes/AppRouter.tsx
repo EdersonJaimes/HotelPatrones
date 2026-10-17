@@ -7,6 +7,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import Clients from "../modules/clients/Clients";
 import Dashboard from "../modules/dashboard/Dashboard";
 import Inventory from "../modules/inventory/Inventory";
+import Patterns from "../modules/patterns/Patterns";
 import Products from "../modules/products/Products";
 import Reception from "../modules/reception/Reception";
 import Reservations from "../modules/reservations/Reservations";
@@ -31,6 +32,7 @@ const AppRouter = () => {
             <Route path="/users" element={<Users />} />
             <Route path="/products" element={<Products />} />
             <Route path="/inventory" element={<Inventory />} />
+            <Route path="/patrones" element={<Patterns />} />
           </Route>
         </Route>
 

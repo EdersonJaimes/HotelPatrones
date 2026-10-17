@@ -43,6 +43,7 @@ const SECTIONS: NavSection[] = [
     ],
   },
   { label: "Equipo", items: [{ label: "Usuarios", path: "/users", icon: "shield", roles: ["admin"], short: "Equipo" }] },
+  { label: "Arquitectura", items: [{ label: "Patrones", path: "/patrones", icon: "grid", roles: ["admin"] }] },
 ];
 
 const ROLE_LABEL: Record<string, string> = { admin: "Administrador", recepcionista: "Recepcionista" };

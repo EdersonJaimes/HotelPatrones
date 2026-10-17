@@ -5,14 +5,13 @@ import { fdate, fmt, initials, num, plural } from "../../lib/format";
 import { accountOf, ROOM_CAP, ROOM_STATUS, ROOM_TYPE } from "../../lib/stay";
 import { useResource } from "../../lib/useResource";
 import { useTween } from "../../lib/useTween";
-import { getStatsDirect, getStatsFacade, type DashboardMode, type DashboardStats } from "../../services/dashboardService";
+import { getStatsFacade, type DashboardStats } from "../../services/dashboardService";
 import { getRoom } from "../../services/roomService";
 import { getActiveStay } from "../../services/stayService";
 import Icon from "../../ui/Icon";
 import Overlay from "../../ui/Overlay";
 import { Badge, ErrorCard, LoadChip, ModalHead, NoteBox } from "../../ui/parts";
 import { Page } from "../../ui/Shell";
-import FacadeLab from "./FacadeLab";
 
 const RES_LABEL: Record<string, { label: string; tone: "warn" | "info" | "ok" }> = {
   pending: { label: "Pendiente", tone: "warn" },
@@ -143,21 +142,20 @@ function StockModal({ stats, onClose }: { stats: DashboardStats; onClose: () => 
   );
 }
 
+const loadStats = () => getStatsFacade();
+
 export default function Dashboard() {
   const { name } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const vista = params.get("vista"); // cargando | error | alerta | habitacion
 
-  const [mode, setMode] = useState<DashboardMode>("facade");
-  const [rtt, setRtt] = useState(0);
   const [modal, setModal] = useState<{ kind: "stock" } | { kind: "room"; id: string } | null>(null);
   const [vistaDone, setVistaDone] = useState(false);
   const [bannerOff, setBannerOff] = useState(false);
 
-  // La función de carga cambia con el modo: useResource vuelve a pedir y mide de nuevo.
-  const load = useMemo(() => () => (mode === "facade" ? getStatsFacade(rtt) : getStatsDirect(rtt)), [mode, rtt]);
-  const res = useResource(load);
+  // El Panel siempre pide un solo resumen al gateway (Facade). La comparación con/sin Facade está en "Patrones".
+  const res = useResource(loadStats);
 
   const result = res.data;
   const stats = result?.stats ?? null;
@@ -165,7 +163,7 @@ export default function Dashboard() {
   const status = forced ?? res.status;
   const skeleton = forced === "loading" || (res.status === "loading" && !stats);
 
-  const e = useTween(result ? `${mode}-${result.ms}` : "");
+  const e = useTween(result ? `facade-${result.ms}` : "");
 
   // ?vista=alerta | habitacion abren su ventana apenas hay datos (una sola vez).
   let shown = modal;
@@ -329,16 +327,6 @@ export default function Dashboard() {
               </section>
             </div>
           </div>
-
-          <FacadeLab
-            mode={mode}
-            onMode={setMode}
-            rtt={rtt}
-            onRtt={setRtt}
-            result={result}
-            loading={res.status === "loading" || res.refreshing}
-            onRerun={res.refresh}
-          />
 
           <div className="grid">
             <section className="card rise" style={{ "--i": 5 } as CSSProperties}>

@@ -9,7 +9,6 @@ import {
   type StatsResult,
 } from "../../services/dashboardService";
 import Icon from "../../ui/Icon";
-import { Seg } from "../../ui/parts";
 
 const RTT_OPTIONS = [0, 25, 50, 100, 200];
 
@@ -116,7 +115,7 @@ function Waterfall({ result }: { result: StatsResult }) {
   );
 }
 
-function BenchRow({ title, sub, mode, tone, max }: { title: string; sub: string; mode: BenchMode; tone: "facade" | "directo" | "serie"; max: number }) {
+function BenchRow({ title, sub, mode, tone, max }: { title: string; sub: string; mode: BenchMode; tone: "facade" | "directo"; max: number }) {
   return (
     <div className="bench-row">
       <div>
@@ -124,7 +123,7 @@ function BenchRow({ title, sub, mode, tone, max }: { title: string; sub: string;
         <div className="sub">{sub} · {mode.requests} {mode.requests === 1 ? "petición" : "peticiones"} · {kb(mode.bytes)}</div>
       </div>
       <div className="bench-track" title={`mediana ${fmtMs(mode.stats.mediana)} · p95 ${fmtMs(mode.stats.p95)}`}>
-        <div className={"bench-bar " + (tone === "facade" ? "is-facade" : tone === "serie" ? "serie" : "")} style={{ width: `${(mode.stats.media / max) * 100}%` }} />
+        <div className={"bench-bar " + (tone === "facade" ? "is-facade" : "")} style={{ width: `${(mode.stats.media / max) * 100}%` }} />
         <div className="bench-p95" style={{ left: `calc(${Math.min(99, (mode.stats.p95 / max) * 100)}% - 1px)` }} />
       </div>
       <div className="val">{fmtMs(mode.stats.media)}</div>
@@ -151,15 +150,15 @@ export default function FacadeLab({ mode, onMode, rtt, onRtt, result, loading, o
     }
   };
 
-  const max = bench ? Math.max(bench.facade.stats.p95, bench.directo.stats.p95, bench.serie.stats.p95, 1) * 1.05 : 1;
+  const max = bench ? Math.max(bench.facade.stats.p95, bench.directo.stats.p95, 1) * 1.05 : 1;
 
   return (
     <section className="card lab rise" style={{ ["--i" as string]: 1 }} aria-label="Laboratorio Facade">
       <div className="lab-top">
         <div>
-          <h3 className="h3">Laboratorio · Facade vs. sin Facade</h3>
+          <h3 className="h3">Facade vs. sin Facade</h3>
           <div className="muted sm-text">
-            Cambia el modo y mira cuántas peticiones hace el navegador, cuánto tarda (ms) y cuántos datos descarga.
+            El Panel necesita datos de varios microservicios. Elige cómo los pide y mira, en milisegundos, qué cambia.
           </div>
         </div>
         <button className="btn ghost sm" onClick={onRerun} disabled={loading}>
@@ -168,34 +167,46 @@ export default function FacadeLab({ mode, onMode, rtt, onRtt, result, loading, o
         </button>
       </div>
 
-      <div className="lab-top">
-        <Seg
-          className="facade-seg"
-          label="Modo de consulta del panel"
-          value={mode}
-          onChange={onMode}
-          items={[
-            { key: "facade", label: "Con Facade", cls: "on-facade" },
-            { key: "directo", label: "Sin Facade", cls: "on-direct" },
-          ]}
-        />
-        <div className="field-row">
-          <div className="fld">
-            <label className="lbl" htmlFor="lab-rtt">Latencia simulada por petición</label>
-            <select id="lab-rtt" className="inp" value={rtt} onChange={(e) => onRtt(Number(e.target.value))}>
-              {RTT_OPTIONS.map((v) => (
-                <option key={v} value={v}>{v === 0 ? "Ninguna (localhost)" : `${v} ms`}</option>
-              ))}
-            </select>
-          </div>
+      <div className="mode-cards" role="group" aria-label="Modo de consulta del panel">
+        <button className={"mode-card is-facade" + (mode === "facade" ? " on" : "")} aria-pressed={mode === "facade"} onClick={() => onMode("facade")}>
+          <span className="mc-tag">Con Facade</span>
+          <b>El navegador hace 1 sola petición</b>
+          <ol>
+            <li>Pide <code>/dashboard/stats</code> al gateway.</li>
+            <li>El gateway consulta los servicios por la red interna.</li>
+            <li>Devuelve un resumen pequeño, ya armado.</li>
+          </ol>
+        </button>
+        <button className={"mode-card is-direct" + (mode === "directo" ? " on" : "")} aria-pressed={mode === "directo"} onClick={() => onMode("directo")}>
+          <span className="mc-tag">Sin Facade</span>
+          <b>El navegador hace 5 peticiones</b>
+          <ol>
+            <li>Pide por separado habitaciones, inventario, consumo, clientes y reservas.</li>
+            <li>Descarga las listas completas.</li>
+            <li>Combina los datos él mismo.</li>
+          </ol>
+        </button>
+      </div>
+
+      <div className="field-row">
+        <div className="fld">
+          <label className="lbl" htmlFor="lab-rtt">Latencia simulada por petición</label>
+          <select id="lab-rtt" className="inp" value={rtt} onChange={(e) => onRtt(Number(e.target.value))}>
+            {RTT_OPTIONS.map((v) => (
+              <option key={v} value={v}>{v === 0 ? "Ninguna (red local)" : `${v} ms (como internet)`}</option>
+            ))}
+          </select>
+        </div>
+        <div className="muted sm-text" style={{ alignSelf: "end", maxWidth: 420 }}>
+          En tu computador la red es casi instantánea. Con latencia se nota lo que cuesta cada viaje extra.
         </div>
       </div>
 
       <div className="lab-stats" aria-live="polite">
         <div className="lab-stat">
-          <span className="overline">Peticiones del navegador</span>
+          <span className="overline">Peticiones</span>
           <span className="amt-lg">{result ? result.requests : "—"}</span>
-          <span className="muted sm-text">{mode === "facade" ? "Una sola: /dashboard/stats" : "Una por recurso"}</span>
+          <span className="muted sm-text">{mode === "facade" ? "Una sola" : "Una por recurso"}</span>
         </div>
         <div className="lab-stat">
           <span className="overline">Tiempo total</span>
@@ -218,7 +229,7 @@ export default function FacadeLab({ mode, onMode, rtt, onRtt, result, loading, o
 
       {result && (
         <div>
-          <div className="overline" style={{ marginBottom: 10 }}>Cascada de peticiones</div>
+          <div className="overline" style={{ marginBottom: 10 }}>Qué pasó en la red (cada barra es una petición)</div>
           <Waterfall result={result} />
         </div>
       )}
@@ -226,9 +237,9 @@ export default function FacadeLab({ mode, onMode, rtt, onRtt, result, loading, o
       <div className="bench">
         <div className="lab-top">
           <div>
-            <h3 className="h3">Comparar los tres modos</h3>
+            <h3 className="h3">Comparar los dos modos</h3>
             <div className="muted sm-text">
-              Repite cada modo {n} veces (más 2 de calentamiento), intercalados, y calcula media, mediana y p95.
+              Pide el Panel {n} veces con cada modo (alternados) y promedia el tiempo. Así el resultado no depende de una sola prueba.
             </div>
           </div>
           <div className="field-row">
@@ -255,16 +266,15 @@ export default function FacadeLab({ mode, onMode, rtt, onRtt, result, loading, o
         {bench && (
           <>
             <BenchRow title="Con Facade" sub="1 viaje al gateway" mode={bench.facade} tone="facade" max={max} />
-            <BenchRow title="Sin Facade · en paralelo" sub="lo mejor que puede hacer el navegador" mode={bench.directo} tone="directo" max={max} />
-            <BenchRow title="Sin Facade · en serie" sub="código ingenuo, uno tras otro" mode={bench.serie} tone="serie" max={max} />
+            <BenchRow title="Sin Facade" sub="5 viajes en paralelo" mode={bench.directo} tone="directo" max={max} />
             <div className="note-box t-info">
               <Icon name="info" />
               <span>
-                Con {num(bench.n)} repeticiones{bench.rtt ? ` y ${bench.rtt} ms de latencia por petición` : ""}: la Facade es{" "}
-                <b>{(bench.directo.stats.media / bench.facade.stats.media).toFixed(1)}×</b> más rápida que pedir los 5 recursos en paralelo y{" "}
-                <b>{(bench.serie.stats.media / bench.facade.stats.media).toFixed(1)}×</b> que pedirlos en serie, y descarga{" "}
-                <b>{bench.facade.bytes > 0 ? Math.round(bench.directo.bytes / bench.facade.bytes).toLocaleString("es-CO") : "—"}×</b> menos datos
-                ({kb(bench.facade.bytes)} frente a {kb(bench.directo.bytes)}). La marca oscura de cada barra es el p95.
+                Con {num(bench.n)} repeticiones{bench.rtt ? ` y ${bench.rtt} ms de latencia por petición` : ""}, la Facade tardó{" "}
+                <b>{fmtMs(bench.facade.stats.media)}</b> y sin Facade <b>{fmtMs(bench.directo.stats.media)}</b>:{" "}
+                <b>{(bench.directo.stats.media / bench.facade.stats.media).toFixed(1)}×</b> {bench.directo.stats.media >= bench.facade.stats.media ? "más rápida" : "más lenta"}.
+                Además descargó <b>{bench.facade.bytes > 0 ? Math.round(bench.directo.bytes / bench.facade.bytes).toLocaleString("es-CO") : "—"}×</b> menos datos
+                ({kb(bench.facade.bytes)} frente a {kb(bench.directo.bytes)}).
               </span>
             </div>
           </>

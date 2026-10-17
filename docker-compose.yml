@@ -81,8 +81,6 @@ services:
   products-service:
     build: ./products-service
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:3003:3003"  # visible para un api-gateway que corra fuera de Docker (npm run dev)
     environment:
       <<: *service-env
       PORT: 3003
@@ -93,8 +91,6 @@ services:
   clients-service:
     build: ./clients-service
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:3004:3004"  # visible para un api-gateway que corra fuera de Docker (npm run dev)
     environment:
       <<: *service-env
       PORT: 3004

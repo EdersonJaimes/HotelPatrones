@@ -99,17 +99,6 @@ export const getStatsDirect = (rtt = 0): Promise<StatsResult> =>
     return combine(rooms, inventory, top, clients, reservations);
   });
 
-// Peor caso: código ingenuo con await en serie (una petición tras otra).
-export const getStatsDirectSerie = (rtt = 0): Promise<StatsResult> =>
-  measure(async () => {
-    const rooms = await get<Room[]>("/rooms", rtt);
-    const inventory = await get<InventoryRow[]>("/inventory", rtt);
-    const top = await get<{ _id: string; total: number }[]>("/inventory/top-consumed", rtt, { limit: 5 });
-    const clients = await get<unknown[]>("/clients", rtt);
-    const reservations = await get<Reservation[]>("/reservations", rtt);
-    return combine(rooms, inventory, top, clients, reservations);
-  });
-
 /* ---------------- benchmark ---------------- */
 
 export interface BenchStats {
@@ -131,7 +120,6 @@ export interface BenchResult {
   rtt: number;
   facade: BenchMode;
   directo: BenchMode;
-  serie: BenchMode;
 }
 
 function summarize(samples: number[]): BenchStats {
@@ -155,9 +143,9 @@ export async function runBenchmark(
   rtt: number,
   onProgress: (done: number, total: number) => void
 ): Promise<BenchResult> {
-  const modes = { facade: getStatsFacade, directo: getStatsDirect, serie: getStatsDirectSerie };
+  const modes = { facade: getStatsFacade, directo: getStatsDirect };
   const keys = Object.keys(modes) as (keyof typeof modes)[];
-  const samples: Record<string, number[]> = { facade: [], directo: [], serie: [] };
+  const samples: Record<string, number[]> = { facade: [], directo: [] };
   const meta: Record<string, { requests: number; bytes: number }> = {};
   const total = n + WARMUP;
 
@@ -171,5 +159,5 @@ export async function runBenchmark(
   }
 
   const pack = (key: string): BenchMode => ({ stats: summarize(samples[key]), ...meta[key] });
-  return { n, rtt, facade: pack("facade"), directo: pack("directo"), serie: pack("serie") };
+  return { n, rtt, facade: pack("facade"), directo: pack("directo") };
 }

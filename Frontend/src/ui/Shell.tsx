@@ -1,10 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { kb, ms as fmtMs } from "../lib/format";
-import { speedTone, usePerfEntries } from "../lib/perf";
 import Icon, { type IconName } from "./Icon";
-import Overlay, { CloseButton } from "./Overlay";
 import { useTheme } from "./Theme";
 
 interface NavItem {
@@ -80,9 +77,9 @@ function Sidebar() {
   return (
     <aside className={"sb" + (mini ? " mini" : "")}>
       <div className="brand">
-        <div className="mark" aria-hidden="true">H</div>
+        <img className="mark-img" src="/logo-mark.png" alt="" />
         <div className="txt">
-          <div className="brand-name">Hotel Patrones</div>
+          <div className="brand-name">El Descanso</div>
           <div className="brand-sub">Gestión hotelera</div>
         </div>
         <button className="icon-btn soft collapse" onClick={() => setMini((m) => !m)} aria-label={mini ? "Expandir menú" : "Contraer menú"} title={mini ? "Expandir menú" : "Contraer menú"}>
@@ -162,67 +159,6 @@ export default function AppShell() {
   );
 }
 
-/* ---------- medidor de peticiones (ms) ---------- */
-function PerfPill() {
-  const entries = usePerfEntries();
-  const [open, setOpen] = useState(false);
-  const last = entries[0];
-  const tone = last ? speedTone(last.ms) : "ok";
-
-  return (
-    <>
-      <button className={"perf-pill " + (tone === "ok" ? "" : tone)} onClick={() => setOpen(true)} aria-label="Ver peticiones recientes y su tiempo">
-        <Icon name="bolt" />
-        {last ? (
-          <>
-            <span className="ms">{fmtMs(last.ms)}</span>
-            <span className="muted">· {entries.length} peticiones</span>
-          </>
-        ) : (
-          <span className="muted">sin peticiones</span>
-        )}
-      </button>
-      {open && (
-        <Overlay kind="drawer" label="Peticiones recientes" onClose={() => setOpen(false)}>
-          {(close) => {
-            const total = entries.reduce((s, e) => s + e.ms, 0);
-            return (
-              <>
-                <div className="dw-head m-head">
-                  <div>
-                    <div className="overline">Rendimiento · navegador</div>
-                    <h2>Peticiones recientes</h2>
-                    <div className="muted sm-text">
-                      {entries.length} peticiones · promedio {entries.length ? fmtMs(total / entries.length) : "—"}
-                    </div>
-                  </div>
-                  <CloseButton onClick={close} />
-                </div>
-                <div className="dw-body">
-                  <div className="reqs">
-                    {entries.map((e) => (
-                      <div key={e.id} className="req">
-                        <span className="m">{e.method}</span>
-                        <span className="u" title={e.url}>{e.url}</span>
-                        <span className={"t " + (e.ok ? (speedTone(e.ms) === "ok" ? "" : speedTone(e.ms)) : "fail")}>{fmtMs(e.ms)}</span>
-                        <span className="k">{e.ok ? kb(e.bytes) : e.status || "error"}</span>
-                      </div>
-                    ))}
-                    {entries.length === 0 && <div className="muted">Aún no se ha hecho ninguna petición.</div>}
-                  </div>
-                </div>
-                <div className="dw-foot">
-                  <span className="sticky-hint">Verde &lt; 300 ms · ámbar &lt; 1 s · rojo ≥ 1 s</span>
-                </div>
-              </>
-            );
-          }}
-        </Overlay>
-      )}
-    </>
-  );
-}
-
 export function ThemeButton() {
   const { dark, toggle } = useTheme();
   return (
@@ -266,7 +202,6 @@ export function Page({
               <input type="search" placeholder={search.placeholder} value={search.value} onChange={(e) => search.onChange(e.target.value)} />
             </label>
           )}
-          <PerfPill />
           <ThemeButton />
           {actions}
         </div>

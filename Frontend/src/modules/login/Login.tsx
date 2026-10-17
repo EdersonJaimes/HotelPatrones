@@ -47,11 +47,8 @@ export default function Login() {
 
   return (
     <div className="lg">
-      <section className="lg-art" aria-label="Hotel Patrones">
-        <div className="lg-brand">
-          <div className="lg-mark" aria-hidden="true">H</div>
-          <div className="lg-brand-name">Hotel Patrones</div>
-        </div>
+      <section className="lg-art" aria-label="Hotel El Descanso">
+        <img className="lg-logo" src="/logo.png" alt="Hotel El Descanso · Tu lugar, siempre" />
         <div>
           <h1>Cada habitación, a un clic.</h1>
           <p>Recepción, reservas, inventario y clientes en un solo lugar, conectados en tiempo real.</p>

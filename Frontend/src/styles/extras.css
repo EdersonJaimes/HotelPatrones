@@ -81,7 +81,6 @@ select.inp { appearance: none; padding-right: 36px; background-image: linear-gra
 .bench-track { position: relative; height: 22px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .bench-bar { height: 100%; border-radius: 999px; background: var(--brand); transform-origin: left; animation: grow 700ms var(--out) both; }
 .bench-bar.is-facade { background: var(--ok); }
-.bench-bar.serie { background: var(--err); }
 .bench-p95 { position: absolute; top: 3px; bottom: 3px; width: 3px; border-radius: 2px; background: var(--ink); opacity: .7; }
 .bench-row .val { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
 .prog { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
@@ -135,3 +134,21 @@ select.inp { appearance: none; padding-right: 36px; background-image: linear-gra
 .lg .lg-art .lg-mark { background: #f25c2f; color: #fff; box-shadow: 0 10px 24px -8px rgba(242, 92, 47, .55); }
 .lg .lg-art .lg-door { background: #f25c2f; }
 .lg .lg-art .lg-bld-body { background: rgba(255, 255, 255, .55); border-color: rgba(242, 92, 47, .25); }
+
+/* logo del hotel */
+.mark-img { width: 44px; height: 44px; object-fit: contain; flex: none; }
+.lg-logo { width: min(300px, 70%); height: auto; display: block; animation: rise 420ms var(--out) both; }
+
+/* selector de modo: dos tarjetas que explican cada forma de consultar */
+.mode-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.mode-card { text-align: left; font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: border-color .18s, background .18s; }
+.mode-card:hover { border-color: var(--line-strong); }
+.mode-card .mc-tag { align-self: flex-start; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); }
+.mode-card b { font-size: 16px; }
+.mode-card ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 19px; color: var(--ink-muted); font-weight: 500; }
+.mode-card code { font-size: 12px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+.mode-card.is-facade.on { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, var(--surface)); }
+.mode-card.is-facade.on .mc-tag { background: var(--ok); color: #fff; }
+.mode-card.is-direct.on { border-color: var(--brand); background: var(--brand-tint); }
+.mode-card.is-direct.on .mc-tag { background: var(--brand-strong); color: #fff; }
+@media (max-width: 760px) { .mode-cards { grid-template-columns: 1fr; } }

@@ -1,4 +1,5 @@
 import { publishLowStock, publishStockChanged } from "../broker/product.publisher";
+import { getMovementTypeFlyweight, getProductFlyweight, KardexEntry } from "../flyweights/kardex.flyweight";
 import { IInventoryMovement, MovementType } from "../models/inventoryMovement.model";
 import { IProduct } from "../models/product.model";
 import { InventoryMovementRepository } from "../repositories/inventoryMovement.repository";
@@ -22,16 +23,24 @@ function toInventoryRow(product: IProduct) {
   };
 }
 
-// Forma que espera el frontend (InventoryMovement): product con nombre, type IN/OUT, date.
+// Patrón Flyweight: cada movimiento se convierte en un contexto (KardexEntry)
+// que apunta al flyweight compartido de su producto y de su tipo, y solo
+// guarda lo propio (id, cantidad, motivo, fecha). La fila resultante tiene la
+// forma que espera el frontend (InventoryMovement), pero su `product` es el
+// mismo objeto para todos los movimientos de ese producto.
 function toMovementRow(movement: IInventoryMovement) {
-  return {
-    _id: movement._id.toString(),
-    product: { _id: movement.productId.toString(), name: movement.productName },
-    type: movement.type,
-    quantity: movement.quantity,
-    reason: movement.reason,
-    date: movement.date
-  };
+  const entry = new KardexEntry(
+    getProductFlyweight(movement.productId.toString(), movement.productName),
+    getMovementTypeFlyweight(movement.type),
+    {
+      id: movement._id.toString(),
+      quantity: movement.quantity,
+      reason: movement.reason,
+      date: movement.date
+    }
+  );
+
+  return entry.toRow();
 }
 
 export class InventoryService {

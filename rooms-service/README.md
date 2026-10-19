@@ -9,6 +9,15 @@ Microservicio de gestión de habitaciones. Implementa:
   permite crear habitaciones clonando esa plantilla en vez de reconstruir todos
   sus atributos desde cero. También valida ahí mismo que el precio esté dentro
   del rango permitido para el tipo.
+- **Flyweight** (estructural, `src/flyweights/roomType.flyweight.ts`): la
+  capacidad, los minutos de limpieza y el rango de precio dependen solo del
+  tipo, así que la fábrica (`getRoomTypeFlyweight`) crea UN objeto inmutable
+  por tipo y todas las habitaciones lo comparten. Cada documento de Mongo
+  guarda solo su estado extrínseco (número, estado, precio y amenities); el
+  contexto `RoomEntry` le pide al flyweight la respuesta (`toView`) y el
+  evento (`toEvent`) pasándole ese estado, así la API y los eventos `room.*`
+  mantienen la misma forma. El Prototype ya no copia esos datos: sus clones
+  comparten el flyweight del tipo por referencia.
 - RabbitMQ como Broker: publica eventos y **consume** los eventos de
   `reservations-service` para sincronizar el estado físico de la habitación
   (`reservation.checked_in` → `occupied`, `reservation.checked_out` → `cleaning`).
@@ -67,7 +76,6 @@ Todos requieren `Authorization: Bearer <token>` (token emitido por `auth-service
   "number": 101,
   "type": "doble",
   "price": 45000,
-  "capacity": 2,
   "amenities": ["Wifi", "TV"]
 }
 ```
@@ -75,7 +83,8 @@ Todos requieren `Authorization: Bearer <token>` (token emitido por `auth-service
 `type`: `individual` | `doble` | `triple` | `suite`
 `status` (opcional, default `available`): `available` | `occupied` | `cleaning` | `maintenance`
 
-La Factory valida que `price` esté dentro del rango permitido para ese `type`.
+La capacidad y los minutos de limpieza no se envían: los define el tipo (Flyweight).
+Se valida que `price` esté dentro del rango permitido para ese `type`.
 
 ### Patrón Prototype: listar plantillas disponibles
 

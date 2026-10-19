@@ -5,6 +5,12 @@ Microservicio de **productos e inventario** (catálogo, stock y kardex).
 - Patrón en capas: Routes → Validators → Controllers → Services → Repositories → Models/DB.
 - RabbitMQ mediante el **BrokerFacade** (`src/broker/broker.facade.ts`): el servicio
   publica eventos con `broker.publish(...)` sin tocar `amqplib` directamente.
+- **Flyweight** en el kardex (`src/flyweights/kardex.flyweight.ts`): el producto y
+  el tipo de movimiento (IN/OUT) son estado intrínseco; la fábrica crea UN objeto
+  inmutable por producto y por tipo y todos los movimientos lo comparten. Cada
+  movimiento es un contexto (`KardexEntry`) con su estado extrínseco (id, cantidad,
+  motivo, fecha) y le pide la fila al flyweight (`product.toRow(estado, tipo)`).
+  La respuesta de `/inventory/movements` mantiene la misma forma.
 - MongoDB local con una base exclusiva: `products_db`.
 - JWT: **no emite tokens**, solo valida los que emite `auth-service`
   (`JWT_SECRET` debe ser idéntico en ambos servicios).

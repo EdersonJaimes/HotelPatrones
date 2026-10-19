@@ -4,15 +4,30 @@ import {
   publishRoomStatusChanged,
   publishRoomUpdated
 } from "../broker/room.publisher";
-import { RoomStatus, RoomType } from "../models/room.model";
+import { RoomEntry } from "../flyweights/roomType.flyweight";
+import { IRoom, RoomStatus, RoomType } from "../models/room.model";
 import { getRoomPrototype, listRoomPrototypes, validatePriceForType } from "../prototypes/room.prototype";
 import { RoomRepository } from "../repositories/room.repository";
+
+// ---- Patrón Flyweight ----
+// La habitación guardada solo trae su estado extrínseco. El contexto
+// (RoomEntry) le pide al flyweight compartido de su tipo que agregue
+// capacity y cleaningMinutes, así la API y los eventos room.* mantienen la
+// misma forma de siempre.
+function toRoomView(room: IRoom) {
+  return new RoomEntry(room.toObject()).toView();
+}
+
+function toRoomEvent(room: IRoom) {
+  return new RoomEntry(room.toObject()).toEvent();
+}
 
 export class RoomService {
   private readonly roomRepository = new RoomRepository();
 
   async listRooms() {
-    return this.roomRepository.findAll();
+    const rooms = await this.roomRepository.findAll();
+    return rooms.map(toRoomView);
   }
 
   async getRoomById(id: string) {
@@ -22,7 +37,13 @@ export class RoomService {
       throw new Error("Habitación no encontrada");
     }
 
-    return room;
+    return toRoomView(room);
+  }
+
+  // Quita de los documentos viejos las copias de capacity/cleaningMinutes
+  // que ahora viven en el flyweight. Se llama una vez al arrancar.
+  async dropIntrinsicCopies() {
+    return this.roomRepository.dropIntrinsicCopies();
   }
 
   async createRoom(data: {
@@ -30,7 +51,6 @@ export class RoomService {
     type: RoomType;
     price: number;
     status?: RoomStatus;
-    capacity?: number;
     amenities?: string[];
   }) {
     const exists = await this.roomRepository.existsByNumber(data.number);
@@ -41,9 +61,9 @@ export class RoomService {
 
     validatePriceForType(data.type, data.price);
 
-    // En vez de una Factory aparte, partimos del prototipo clonado de este
-    // tipo para completar lo que no se indicó explícitamente (capacity,
-    // amenities, cleaningMinutes).
+    // Partimos del prototipo clonado de este tipo para completar lo que no
+    // se indicó explícitamente (estado y amenities). La capacidad y los
+    // minutos de aseo no se guardan: los aporta el flyweight del tipo.
     const prototype = getRoomPrototype(data.type);
 
     const room = await this.roomRepository.create({
@@ -51,21 +71,12 @@ export class RoomService {
       type: data.type,
       price: data.price,
       status: data.status ?? prototype.status,
-      capacity: data.capacity ?? prototype.capacity,
-      amenities: data.amenities ?? prototype.amenities,
-      cleaningMinutes: prototype.cleaningMinutes
+      amenities: data.amenities ?? prototype.amenities
     });
 
-    await publishRoomCreated({
-      roomId: room._id.toString(),
-      number: room.number,
-      type: room.type,
-      price: room.price,
-      status: room.status,
-      capacity: room.capacity
-    });
+    await publishRoomCreated(toRoomEvent(room));
 
-    return room;
+    return toRoomView(room);
   }
 
   async updateRoom(
@@ -75,7 +86,6 @@ export class RoomService {
       type?: RoomType;
       price?: number;
       status?: RoomStatus;
-      capacity?: number;
       amenities?: string[];
     }
   ) {
@@ -93,36 +103,27 @@ export class RoomService {
       }
     }
 
-    const updateData: Record<string, unknown> = { ...data };
-
-    if (data.type !== undefined || data.price !== undefined || data.capacity !== undefined) {
-      const effectiveType = data.type ?? current.type;
-      const effectivePrice = data.price ?? current.price;
-
-      validatePriceForType(effectiveType, effectivePrice);
-
-      const prototype = getRoomPrototype(effectiveType);
-
-      updateData.capacity = data.capacity ?? prototype.capacity;
-      updateData.cleaningMinutes = prototype.cleaningMinutes;
+    // Si cambia el tipo, la capacidad y el aseo cambian solos: la habitación
+    // pasa a apuntar a otro flyweight, no hay nada más que actualizar.
+    if (data.type !== undefined || data.price !== undefined) {
+      validatePriceForType(data.type ?? current.type, data.price ?? current.price);
     }
 
-    const room = await this.roomRepository.update(id, updateData);
+    const room = await this.roomRepository.update(id, {
+      number: data.number,
+      type: data.type,
+      price: data.price,
+      status: data.status,
+      amenities: data.amenities
+    });
 
     if (!room) {
       throw new Error("Habitación no encontrada");
     }
 
-    await publishRoomUpdated({
-      roomId: room._id.toString(),
-      number: room.number,
-      type: room.type,
-      price: room.price,
-      status: room.status,
-      capacity: room.capacity
-    });
+    await publishRoomUpdated(toRoomEvent(room));
 
-    return room;
+    return toRoomView(room);
   }
 
   // ---- Patrón Prototype ----
@@ -145,8 +146,8 @@ export class RoomService {
     }
 
     // Clonamos la plantilla del tipo pedido en lugar de armar el objeto
-    // desde cero: la nueva habitación arranca con todos los valores por
-    // defecto de ese tipo (capacity, amenities, cleaningMinutes, price).
+    // desde cero: la nueva habitación arranca con los valores por defecto
+    // de ese tipo (precio sugerido, amenities, estado).
     const prototype = getRoomPrototype(data.type);
 
     const finalPrice = data.price ?? prototype.price;
@@ -158,21 +159,12 @@ export class RoomService {
       type: prototype.type,
       price: finalPrice,
       status: data.status ?? prototype.status,
-      capacity: prototype.capacity,
-      amenities: data.amenities ?? prototype.amenities,
-      cleaningMinutes: prototype.cleaningMinutes
+      amenities: data.amenities ?? prototype.amenities
     });
 
-    await publishRoomCreated({
-      roomId: room._id.toString(),
-      number: room.number,
-      type: room.type,
-      price: room.price,
-      status: room.status,
-      capacity: room.capacity
-    });
+    await publishRoomCreated(toRoomEvent(room));
 
-    return room;
+    return toRoomView(room);
   }
 
   async updateRoomStatus(id: string, status: RoomStatus) {
@@ -182,16 +174,9 @@ export class RoomService {
       throw new Error("Habitación no encontrada");
     }
 
-    await publishRoomStatusChanged({
-      roomId: room._id.toString(),
-      number: room.number,
-      type: room.type,
-      price: room.price,
-      status: room.status,
-      capacity: room.capacity
-    });
+    await publishRoomStatusChanged(toRoomEvent(room));
 
-    return room;
+    return toRoomView(room);
   }
 
   async deleteRoom(id: string) {

@@ -5,9 +5,7 @@ export interface CreateRoomData {
   type: RoomType;
   price: number;
   status?: RoomStatus;
-  capacity: number;
   amenities: string[];
-  cleaningMinutes: number;
 }
 
 export interface UpdateRoomData {
@@ -15,9 +13,7 @@ export interface UpdateRoomData {
   type?: RoomType;
   price?: number;
   status?: RoomStatus;
-  capacity?: number;
   amenities?: string[];
-  cleaningMinutes?: number;
 }
 
 export class RoomRepository {
@@ -47,6 +43,17 @@ export class RoomRepository {
 
   async updateStatus(id: string, status: RoomStatus): Promise<IRoom | null> {
     return Room.findByIdAndUpdate(id, { status }, { returnDocument: "after", runValidators: true });
+  }
+
+  // Limpieza única de los documentos creados antes del Flyweight, que aún
+  // traen su propia copia de capacity/cleaningMinutes. Va por el driver
+  // porque esos campos ya no existen en el esquema de Mongoose.
+  async dropIntrinsicCopies(): Promise<number> {
+    const result = await Room.collection.updateMany(
+      { $or: [{ capacity: { $exists: true } }, { cleaningMinutes: { $exists: true } }] },
+      { $unset: { capacity: "", cleaningMinutes: "" } }
+    );
+    return result.modifiedCount;
   }
 
   async deleteById(id: string): Promise<IRoom | null> {

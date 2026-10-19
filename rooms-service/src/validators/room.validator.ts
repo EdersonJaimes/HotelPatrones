@@ -21,10 +21,6 @@ export const createRoomValidator = [
     .optional()
     .isIn(ROOM_STATUSES).withMessage(`status debe ser uno de: ${ROOM_STATUSES.join(", ")}`),
 
-  body("capacity")
-    .optional()
-    .isInt({ min: 1 }).withMessage("capacity debe ser un entero mayor a 0"),
-
   body("amenities")
     .optional()
     .isArray().withMessage("amenities debe ser un arreglo"),
@@ -51,10 +47,6 @@ export const updateRoomValidator = [
   body("status")
     .optional()
     .isIn(ROOM_STATUSES).withMessage(`status debe ser uno de: ${ROOM_STATUSES.join(", ")}`),
-
-  body("capacity")
-    .optional()
-    .isInt({ min: 1 }).withMessage("capacity debe ser un entero mayor a 0"),
 
   body("amenities")
     .optional()

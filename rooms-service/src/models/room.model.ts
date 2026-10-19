@@ -16,14 +16,15 @@ export const ROOM_AMENITIES = [
 
 export type RoomAmenity = (typeof ROOM_AMENITIES)[number];
 
+// Solo el estado EXTRÍNSECO de la habitación. La capacidad y los minutos de
+// aseo dependen únicamente del tipo: viven en el flyweight compartido
+// (flyweights/roomType.flyweight.ts) y no se repiten en cada documento.
 export interface IRoom extends Document {
   number: number;
   type: RoomType;
   price: number;
   status: RoomStatus;
-  capacity: number;
   amenities: string[];
-  cleaningMinutes: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,18 +53,10 @@ const roomSchema = new Schema<IRoom>(
       default: "available",
       required: true
     },
-    capacity: {
-      type: Number,
-      required: true
-    },
     amenities: {
       type: [{ type: String, enum: ROOM_AMENITIES }],
       required: true,
       default: []
-    },
-    cleaningMinutes: {
-      type: Number,
-      required: true
     }
   },
   {

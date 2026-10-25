@@ -9,6 +9,8 @@ import {
 } from "../broker/reservation.publisher";
 import { ProductsClient } from "../clients/products.client";
 import { getReservationChannelFactory } from "../factories/reservationChannel.factory";
+import { deserialize, retainedBytes } from "../flyweights/memory.probe";
+import { flyweightPoolSizes, LeanReservation, ReservationEntry } from "../flyweights/reservation.flyweight";
 import { IReservation, ReservationChannel } from "../models/reservation.model";
 import { ReservationRepository } from "../repositories/reservation.repository";
 import { RoomSnapshotRepository } from "../repositories/roomSnapshot.repository";
@@ -51,8 +53,34 @@ export class ReservationService {
     return this.reservationRepository.dashboardSummary(arrivalsLimit);
   }
 
+  // Patrón Flyweight: cada reserva se convierte en un contexto (ReservationEntry)
+  // que apunta a los flyweights compartidos de su habitación, canal, estado y
+  // creador. La fila tiene la forma de siempre, pero esos campos son los mismos
+  // objetos en memoria para todas las reservas que los comparten.
   async listReservations() {
-    return this.reservationRepository.findAll();
+    const reservations = await this.reservationRepository.findAllLean();
+    return reservations.map((reservation) => new ReservationEntry(reservation).toView());
+  }
+
+  // RAM retenida por la respuesta de listReservations() en este proceso, antes
+  // y después del Flyweight, con los datos reales de la base. Se mide la fila
+  // ya armada más el JSON que envía res.json(): el pico de cada petición.
+  async measureListMemory() {
+    const raw = await this.reservationRepository.findAllRaw();
+    const withJson = (rows: unknown[]) => [rows, JSON.stringify(rows)];
+
+    // Antes: find() hidrataba un documento Mongoose por reserva y se enviaba tal cual.
+    const before = retainedBytes(() =>
+      withJson(raw.map((buffer) => this.reservationRepository.hydrate(deserialize(buffer))))
+    );
+    // Paso intermedio: objetos planos, pero cada fila con sus propias copias.
+    const leanOnly = retainedBytes(() => withJson(raw.map((buffer) => deserialize(buffer))));
+    // Después: objetos planos que comparten los flyweights.
+    const after = retainedBytes(() =>
+      withJson(raw.map((buffer) => new ReservationEntry(deserialize<LeanReservation>(buffer)).toView()))
+    );
+
+    return { rows: raw.length, before, leanOnly, after, shared: flyweightPoolSizes() };
   }
 
   async getReservationById(id: string) {

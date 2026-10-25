@@ -31,6 +31,15 @@ export class ReservationController {
     }
   };
 
+  flyweightMemory = async (_req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      res.status(200).json(await this.reservationService.measureListMemory());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error midiendo la memoria";
+      res.status(500).json({ message });
+    }
+  };
+
   summary = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const limit = Math.min(Number(req.query.arrivals) || 5, 50);

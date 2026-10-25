@@ -4,18 +4,18 @@ import { Page } from "../../ui/Shell";
 import BrokerPanel from "./BrokerPanel";
 import FacadePanel from "./FacadePanel";
 import FlyweightPanel from "./FlyweightPanel";
+import FlyweightRamPanel from "./FlyweightRamPanel";
 
-type Pattern = "facade" | "broker" | "flyweight";
+type Pattern = "facade" | "broker";
 
 export default function Patterns() {
   const [params, setParams] = useSearchParams();
-  const param = params.get("patron");
-  const active: Pattern = param === "flyweight" || param === "broker" ? param : "facade";
+  const active: Pattern = params.get("patron") === "broker" ? "broker" : "facade";
 
   return (
     <Page
       title="Patrones"
-      service="api-gateway · RabbitMQ · products-service"
+      service="api-gateway · RabbitMQ · reservations-service · products-service"
       subtitle="Mira con datos reales qué cambia al aplicar cada patrón"
     >
       <Seg
@@ -23,14 +23,18 @@ export default function Patterns() {
         value={active}
         onChange={(key) => setParams(key === "facade" ? {} : { patron: key })}
         items={[
-          { key: "facade", label: "Facade · API Gateway" },
+          { key: "facade", label: "Facade · API Gateway y Flyweight" },
           { key: "broker", label: "Facade · Broker" },
-          { key: "flyweight", label: "Flyweight" },
         ]}
       />
-      {active === "facade" && <FacadePanel />}
+      {active === "facade" && (
+        <div className="stack">
+          <FacadePanel />
+          <FlyweightRamPanel />
+          <FlyweightPanel />
+        </div>
+      )}
       {active === "broker" && <BrokerPanel />}
-      {active === "flyweight" && <FlyweightPanel />}
     </Page>
   );
 }

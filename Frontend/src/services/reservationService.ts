@@ -1,4 +1,5 @@
 import api from "./api";
+import { buildReservations, type RawReservation } from "../lib/reservationFlyweight";
 import type { Reservation, ReservationChannel } from "../types/domain";
 
 export interface ReservationInput {
@@ -13,7 +14,9 @@ export interface ReservationInput {
   notes?: string;
 }
 
-export const getReservations = async (): Promise<Reservation[]> => (await api.get("/reservations")).data;
+// Patrón Flyweight: las filas comparten habitación, canal, estado y creador (lib/reservationFlyweight.ts).
+export const getReservations = async (): Promise<Reservation[]> =>
+  buildReservations((await api.get<RawReservation[]>("/reservations")).data).rows;
 
 export const createReservation = async (data: ReservationInput): Promise<Reservation> =>
   (await api.post("/reservations", data)).data;

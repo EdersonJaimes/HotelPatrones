@@ -1,3 +1,4 @@
+import { LeanReservation } from "../flyweights/reservation.flyweight";
 import {
   IReservation,
   IReservationConsumption,
@@ -63,8 +64,20 @@ export class ReservationRepository {
     return { active, arrivals };
   }
 
-  async findAll(): Promise<IReservation[]> {
-    return Reservation.find().sort({ checkIn: 1 });
+  // Objetos planos (.lean()): un documento Mongoose guarda su propia copia de
+  // todo; el Flyweight necesita que la fila quede solo con su estado extrínseco.
+  async findAllLean(): Promise<LeanReservation[]> {
+    return Reservation.find().sort({ checkIn: 1 }).lean<LeanReservation[]>();
+  }
+
+  // Los documentos tal como llegan de Mongo, sin deserializar (para medir la RAM).
+  async findAllRaw(): Promise<Buffer[]> {
+    const raw = await Reservation.collection.find({}, { raw: true, sort: { checkIn: 1 } }).toArray();
+    return raw as unknown as Buffer[];
+  }
+
+  hydrate(document: object): IReservation {
+    return Reservation.hydrate(document);
   }
 
   async findById(id: string): Promise<IReservation | null> {

@@ -1,8 +1,9 @@
 import { publishLowStock, publishStockChanged } from "../broker/product.publisher";
-import { getMovementTypeFlyweight, getProductFlyweight, KardexEntry } from "../flyweights/kardex.flyweight";
-import { IInventoryMovement, MovementType } from "../models/inventoryMovement.model";
+import { getMovementTypeFlyweight, getProductFlyweight, KardexEntry, kardexPoolSizes } from "../flyweights/kardex.flyweight";
+import { deserialize, retainedBytes } from "../flyweights/memory.probe";
+import { MovementType } from "../models/inventoryMovement.model";
 import { IProduct } from "../models/product.model";
-import { InventoryMovementRepository } from "../repositories/inventoryMovement.repository";
+import { InventoryMovementRepository, LeanMovement } from "../repositories/inventoryMovement.repository";
 import { ProductRepository } from "../repositories/product.repository";
 
 const NOT_FOUND = "Producto no encontrado";
@@ -28,7 +29,7 @@ function toInventoryRow(product: IProduct) {
 // guarda lo propio (id, cantidad, motivo, fecha). La fila resultante tiene la
 // forma que espera el frontend (InventoryMovement), pero su `product` es el
 // mismo objeto para todos los movimientos de ese producto.
-function toMovementRow(movement: IInventoryMovement) {
+function toMovementRow(movement: LeanMovement) {
   const entry = new KardexEntry(
     getProductFlyweight(movement.productId.toString(), movement.productName),
     getMovementTypeFlyweight(movement.type),
@@ -131,6 +132,51 @@ export class InventoryService {
   async getRecentMovements(limit: number) {
     const movements = await this.movementRepository.findRecent(limit);
     return movements.map(toMovementRow);
+  }
+
+  // RAM retenida por la respuesta del kardex en este proceso, antes y después
+  // del Flyweight, con los datos reales de la base. Se mide la fila ya armada
+  // más el JSON que envía res.json(): el pico de cada petición.
+  async measureKardexMemory(limit: number) {
+    const raw = await this.movementRepository.findRecentRaw(limit);
+    const withJson = (rows: unknown[]) => [rows, JSON.stringify(rows)];
+
+    // Antes: documentos Mongoose y cada fila con su propia copia de { _id, name } del producto.
+    const before = retainedBytes(() =>
+      withJson(
+        raw.map((buffer) => {
+          const m = this.movementRepository.hydrate(deserialize(buffer));
+          return {
+            _id: m._id.toString(),
+            product: { _id: m.productId.toString(), name: m.productName },
+            type: m.type,
+            quantity: m.quantity,
+            reason: m.reason,
+            date: m.date
+          };
+        })
+      )
+    );
+    // Paso intermedio: objetos planos, pero cada fila con su propia copia del producto.
+    const leanOnly = retainedBytes(() =>
+      withJson(
+        raw.map((buffer) => {
+          const m = deserialize<LeanMovement>(buffer);
+          return {
+            _id: m._id.toString(),
+            product: { _id: m.productId.toString(), name: m.productName },
+            type: m.type,
+            quantity: m.quantity,
+            reason: m.reason,
+            date: m.date
+          };
+        })
+      )
+    );
+    // Después: lo que hace hoy getRecentMovements().
+    const after = retainedBytes(() => withJson(raw.map((buffer) => toMovementRow(deserialize<LeanMovement>(buffer)))));
+
+    return { rows: raw.length, before, leanOnly, after, shared: kardexPoolSizes() };
   }
 
   async getTopConsumed(limit: number) {

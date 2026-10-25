@@ -39,7 +39,7 @@ function time<T>(run: () => T, repeats = 1): { ms: number; value: T } {
   return { ms: (performance.now() - t0) / repeats, value };
 }
 
-function Compare({ title, sub, a, b, fmtV, unit }: { title: string; sub: string; a: number; b: number; fmtV: (n: number) => string; unit?: string }) {
+export function Compare({ title, sub, a, b, fmtV, unit }: { title: string; sub: string; a: number; b: number; fmtV: (n: number) => string; unit?: string }) {
   const max = Math.max(a, b, 1e-9) * 1.05;
   return (
     <div className="fw-cmp">

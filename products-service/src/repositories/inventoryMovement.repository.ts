@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { IInventoryMovement, InventoryMovement, MovementType } from "../models/inventoryMovement.model";
 
 export interface CreateMovementData {
@@ -8,18 +9,40 @@ export interface CreateMovementData {
   reason?: string;
 }
 
+export interface LeanMovement {
+  _id: Types.ObjectId;
+  productId: Types.ObjectId;
+  productName: string;
+  type: MovementType;
+  quantity: number;
+  reason?: string;
+  date: Date;
+}
+
 export class InventoryMovementRepository {
   async create(data: CreateMovementData): Promise<IInventoryMovement> {
     return InventoryMovement.create(data);
   }
 
-  async findByProductId(productId: string): Promise<IInventoryMovement[]> {
-    return InventoryMovement.find({ productId }).sort({ date: -1 });
+  // Objetos planos (.lean()): un documento Mongoose guarda su propia copia de
+  // todo; el Flyweight necesita que la fila quede solo con su estado extrínseco.
+  async findByProductId(productId: string): Promise<LeanMovement[]> {
+    return InventoryMovement.find({ productId }).sort({ date: -1 }).lean<LeanMovement[]>();
   }
 
   // Kardex general: los últimos N movimientos de todos los productos.
-  async findRecent(limit: number): Promise<IInventoryMovement[]> {
-    return InventoryMovement.find().sort({ date: -1 }).limit(limit);
+  async findRecent(limit: number): Promise<LeanMovement[]> {
+    return InventoryMovement.find().sort({ date: -1 }).limit(limit).lean<LeanMovement[]>();
+  }
+
+  // Los documentos tal como llegan de Mongo, sin deserializar (para medir la RAM).
+  async findRecentRaw(limit: number): Promise<Buffer[]> {
+    const raw = await InventoryMovement.collection.find({}, { raw: true, sort: { date: -1 }, limit }).toArray();
+    return raw as unknown as Buffer[];
+  }
+
+  hydrate(document: object): IInventoryMovement {
+    return InventoryMovement.hydrate(document);
   }
 
   // Suma las salidas (consumo) por producto y devuelve el top N.

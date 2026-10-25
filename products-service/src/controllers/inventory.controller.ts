@@ -57,6 +57,15 @@ export class InventoryController {
     }
   };
 
+  flyweightMemory = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const limit = Number(req.query.limit) || 20000;
+      res.status(200).json(await this.inventoryService.measureKardexMemory(limit));
+    } catch (error) {
+      sendError(res, error, "Error midiendo la memoria del kardex");
+    }
+  };
+
   topConsumed = async (req: Request, res: Response): Promise<void> => {
     try {
       const limit = Number(req.query.limit) || 5;

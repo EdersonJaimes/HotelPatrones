@@ -100,6 +100,11 @@ export function getMovementTypeFlyweight(code: MovementType): MovementTypeFlywei
   return types.get(code, () => new MovementTypeFlyweight(code, TYPE_LABELS[code]));
 }
 
+// Cuántos objetos compartidos hay hoy en cada fábrica (lo muestra la vista Patrones).
+export function kardexPoolSizes() {
+  return { products: products.size, types: types.size };
+}
+
 // ---------- Contexto (estado extrínseco, uno por movimiento) ----------
 
 export class KardexEntry {

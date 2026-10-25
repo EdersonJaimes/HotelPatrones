@@ -36,6 +36,16 @@ router.get(
   controller.recentMovements
 );
 
+// Antes y después del Flyweight del kardex medidos en este proceso (vista Patrones).
+router.get(
+  "/flyweight/memory",
+  authenticateToken,
+  requireRole("admin"),
+  recentMovementsValidator,
+  validateRequest,
+  controller.flyweightMemory
+);
+
 router.get(
   "/movements/:productId",
   authenticateToken,
